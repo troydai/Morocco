@@ -1,0 +1,4 @@
+# dependencies required by the service
+azure-common==1.1.6
+azure-batch==3.0.0
+Flask==0.12.2
