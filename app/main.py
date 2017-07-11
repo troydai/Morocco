@@ -1,8 +1,14 @@
 import os
 import json
 from urllib.parse import urlparse
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for
 app = Flask(__name__)
+
+
+@app.before_request
+def redirect_https():
+    if 'X-Arr-Ssl' not in request.headers and os.environ.get('FLASK_DEBUG') != '1':
+        return redirect(url_for('index', _external=True, _scheme='https'))
 
 
 @app.route('/')
