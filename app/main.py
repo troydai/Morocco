@@ -17,4 +17,4 @@ def sec():
 
 @app.route('/headers')
 def headers():
-    return request.headers.get('HTTP_X_FORWARDED_PROTO') or 'None'
+    return str(list(h for h in request.headers))
