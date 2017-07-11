@@ -3,5 +3,5 @@ app = Flask(__name__)
 
 
 @app.route('/')
-def hello_world():
-    return 'Hello, world!'
+def root():
+    return 'Morocco - An automation service runs on Azure Batch.'
