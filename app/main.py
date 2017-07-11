@@ -4,7 +4,7 @@ app = Flask(__name__)
 
 
 @app.route('/')
-def root():
+def index():
     results = 'Morocco - An automation service runs on Azure Batch.\n'
     for key in os.environ:
         results += '{} = {}\n'.format(key, os.environ[key])
