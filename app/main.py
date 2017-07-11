@@ -1,5 +1,7 @@
 import os
-from flask import Flask, render_template
+import json
+from urllib.parse import urlparse
+from flask import Flask, render_template, request
 app = Flask(__name__)
 
 
@@ -7,3 +9,12 @@ app = Flask(__name__)
 def index():
     byline = 'Morocco - An automation service runs on Azure Batch.\n'
     return render_template('index.html', byline=byline)
+
+@app.route('/sec')
+def sec():
+    url = urlparse(request.host_url)
+    return url.scheme
+
+@app.route('/headers')
+def headers():
+    return request.headers.get('HTTP_X_FORWARDED_PROTO') or 'None'
