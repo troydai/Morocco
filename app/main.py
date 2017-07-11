@@ -1,12 +1,9 @@
 import os
-from flask import Flask
+from flask import Flask, render_template
 app = Flask(__name__)
 
 
 @app.route('/')
 def index():
-    results = 'Morocco - An automation service runs on Azure Batch.\n'
-    for key in os.environ:
-        results += '{} = {}\n'.format(key, os.environ[key])
-    
-    return results
+    byline = 'Morocco - An automation service runs on Azure Batch.\n'
+    return render_template('index.html', byline=byline)
