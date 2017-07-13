@@ -1,6 +1,7 @@
+from typing import List
 from azure.batch import BatchServiceClient
 from azure.storage.blob import BlockBlobService
-from .models import SourceControlInfo
+from .models import SourceControlInfo, BatchPoolInfo
 
 
 def get_build_blob_container_url(storage_client: BlockBlobService) -> str:
@@ -18,8 +19,10 @@ def get_build_blob_container_url(storage_client: BlockBlobService) -> str:
             expiry=(datetime.utcnow() + timedelta(days=1))))
 
 
-def create_build_job(batch_client: BatchServiceClient, storage_client: BlockBlobService,
-                     source_control_info: SourceControlInfo, pools) -> str:
+def create_build_job(batch_client: BatchServiceClient,
+                     storage_client: BlockBlobService,
+                     source_control_info: SourceControlInfo,
+                     pools: List[BatchPoolInfo]) -> str:
     """
     Schedule a build job in the given pool. returns the container for build output and job reference.
 
@@ -30,7 +33,7 @@ def create_build_job(batch_client: BatchServiceClient, storage_client: BlockBlob
     """
     from azure.batch.models import (TaskAddParameter, JobAddParameter, PoolInformation, OutputFile,
                                     OutputFileDestination, OutputFileUploadOptions, OutputFileUploadCondition,
-                                    OutputFileBlobContainerDestination, OnAllTasksComplete, OnTaskFailure)
+                                    OutputFileBlobContainerDestination, OnAllTasksComplete)
     from .util import get_command_string, get_logger, generate_build_id
 
     remote_source_dir = 'gitsrc'
