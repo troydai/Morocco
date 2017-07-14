@@ -1,17 +1,19 @@
 import os
 import logging
 from collections import namedtuple
-from typing import List, NamedTuple, Union
+from typing import NamedTuple, Union
 
 from azure.batch import BatchServiceClient
+from azure.batch.models import CloudPool
 from azure.storage.blob import BlockBlobService
 
 BatchAccountInfo = namedtuple('BatchAccountInfo', ['account', 'key', 'endpoint'])
-BatchPoolInfo = namedtuple('BatchPoolInfo',
-                           ['id', 'usage', 'sku', 'image', 'vmsize', 'dedicated', 'lowpri', 'maxtasks'])
 SourceControlInfo = namedtuple('SourceControlInfo', ['url', 'branch'])
 StorageAccountInfo = namedtuple('StorageAccountInfo', ['account', 'key'])
-GeneralSettings = namedtuple('GeneralSettings', ['batch', 'source', 'storage'])
+AutomationActorInfo = NamedTuple('AutomationActorInfo', [('account', str), ('key', str), ('tenant', str)])
+
+
+# GeneralSettings = namedtuple('GeneralSettings', ['batch', 'source', 'storage'])
 
 
 def get_setting_from_file() -> Union[dict, None]:
@@ -46,7 +48,7 @@ def get_batch_account_info() -> BatchAccountInfo:
         return _read_section_from_file(BatchAccountInfo, 'azurebatch')
 
     logger.info('Read Azure Batch info from environment.')
-    return _read_section_from_env(BatchAccountInfo)
+    return _read_section_from_env(BatchAccountInfo, prefix='BATCH')
 
 
 def get_source_control_info() -> SourceControlInfo:
@@ -55,7 +57,7 @@ def get_source_control_info() -> SourceControlInfo:
         logger.info('Read source control info from settings file.')
         return _read_section_from_file(SourceControlInfo, 'gitsource')
     logger.info('Read source control info from environment.')
-    return _read_section_from_env(SourceControlInfo)
+    return _read_section_from_env(SourceControlInfo, prefix='SOURCE')
 
 
 def get_storage_account_info() -> StorageAccountInfo:
@@ -65,17 +67,30 @@ def get_storage_account_info() -> StorageAccountInfo:
         return _read_section_from_file(StorageAccountInfo, 'azurestorage')
 
     logger.info('Read storage account info from environment.')
-    return _read_section_from_env(StorageAccountInfo)
+    return _read_section_from_env(StorageAccountInfo, prefix='STORAGE')
 
 
-def get_batch_pools_from_file() -> List[BatchPoolInfo]:
+def get_automation_actor_info() -> AutomationActorInfo:
     logger = logging.getLogger(__name__)
-    try:
-        pool_settings = MOROCCO_SETTINGS_FROM_FILE['pools']
-        return [BatchPoolInfo(**each) for each in pool_settings]
-    except KeyError:
-        logger.error('Fail to parse setting file.')
-        raise EnvironmentError('Fail to parse settings file.')
+    if MOROCCO_SETTINGS_FROM_FILE:
+        logger.info('Read storage account info from settings file.')
+        return _read_section_from_file(AutomationActorInfo, 'automation')
+
+    logger.info('Read storage account info from environment.')
+    return _read_section_from_env(AutomationActorInfo, prefix='AUTOMATION')
+
+
+def get_batch_pool(usage: str) -> CloudPool:
+    logger = logging.getLogger(__name__)
+
+    build_pool = next(pool for pool in get_batch_client().pool.list() if
+                      next(m.value for m in pool.metadata if m.name == 'usage') == usage)
+
+    if not build_pool:
+        logger.error('Fail to find a pool for %s usage.', usage)
+        raise EnvironmentError('Fail to find a pool.')
+
+    return build_pool
 
 
 def get_batch_client(account_info: BatchAccountInfo = None) -> BatchServiceClient:
@@ -100,10 +115,9 @@ def _read_section_from_file(named_tuple_type, section_name: str) -> NamedTuple:
         raise EnvironmentError('Fail to read section from settings file.')
 
 
-def _read_section_from_env(named_tuple_type, prefix: str = None) -> NamedTuple:
+def _read_section_from_env(named_tuple_type, prefix: str) -> NamedTuple:
     try:
-        prefix = prefix or 'MOROCCO_BATCH_'
-        fields = ['{}{}'.format(prefix, f.upper()) for f in named_tuple_type._fields]
+        fields = ['MOROCCO_{}_{}'.format(prefix, f).upper() for f in named_tuple_type._fields]
         kwargs = {f: os.environ[f] for f in fields}
         return named_tuple_type(**kwargs)
     except KeyError as ex:
