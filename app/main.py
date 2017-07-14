@@ -55,11 +55,11 @@ def create_test_job():
     logger = get_logger()
     test_job_id = start_test(build_id=request.form['build_job'], run_live='live' in request.form)
     logger.info('Create new test job %s', test_job_id)
-    return redirect(url_for('show_test', job_id=test_job_id))
+    return redirect(url_for('show_job', job_id=test_job_id))
 
 
-@app.route('/test', methods=['GET'])
-def show_test():
+@app.route('/job', methods=['GET'])
+def show_job():
     from collections import namedtuple
     from .models import get_batch_client
     from .util import get_time_str
@@ -73,7 +73,7 @@ def show_test():
         job = get_batch_client().job.get(job_id)
         tasks = list(get_batch_client().task.list(job_id))
 
-        return render_template('test.html', job=job_view(
+        return render_template('job.html', job=job_view(
             job.id,
             job.display_name,
             job.state,
