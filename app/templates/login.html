@@ -1,0 +1,10 @@
+{% extends "_layout.html" %}
+{% block title %}Login{% endblock %}
+{% block addition_meta %}
+    <meta http-equiv="refresh" content="5;{{ azure_signin_uri }}" />
+{% endblock %}
+{% block body %}
+    <h1>Redirecting to Azure AD. Please use you corporate account to sign in.</h1>
+    <p class="lead">If the page doesn't redirect in 5 seconds, please use following link.</p>
+    <a href="{{ azure_signin_uri }}">Redirect to sign in page.</a>
+{% endblock %}

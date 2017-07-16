@@ -1,8 +1,36 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for
+import logging
+from flask import Flask, render_template, request, redirect, url_for, make_response
+from flask_login import LoginManager, login_required
+from .auth import init_auth_config
 from .util import get_logger
 
 app = Flask(__name__)  # pylint: disable=invalid-name
+init_auth_config(app.config)
+
+if not app.secret_key:
+    app.secret_key = 'session secret key for local testing'
+
+login_manager = LoginManager()  # pylint: disable=invalid-name
+login_manager.init_app(app)
+
+if app.debug:
+    logging.basicConfig(level=logging.DEBUG)
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    from .models import User
+    get_logger('login').info('loading user {}'.format(user_id))
+    return User(user_id)
+
+
+@login_manager.unauthorized_handler
+def unauthorized_handler():
+    logger = get_logger('auth')
+    logger.info('Unauthorized request to {}. Redirect to login page.'.format(request.path))
+
+    return redirect(url_for('login', request_uri=request.path))
 
 
 @app.before_request
@@ -11,13 +39,35 @@ def redirect_https():
         return redirect(url_for('index', _external=True, _scheme='https'))
 
 
-@app.route('/')
+@app.route('/', methods=['GET'])
 def index():
     byline = 'Morocco - An automation service runs on Azure Batch.\n'
     return render_template('index.html', byline=byline)
 
 
+@app.route('/login', methods=['GET'])
+def login():
+    """Redirect user agent to Azure AD sign-in page"""
+    from .auth import openid_login
+    return openid_login()
+
+
+@app.route('/signin-callback', methods=['POST'])
+def signin_callback():
+    """Redirect from AAD sign in page"""
+    from .auth import openid_callback
+    return openid_callback()
+
+
+@app.route('/logout', methods=['POST'])
+def logout():
+    """Logout from both this application as well as Azure OpenID sign in."""
+    from .auth import openid_signout
+    return openid_signout()
+
+
 @app.route('/builds', methods=['GET'])
+@login_required
 def list_builds():
     from collections import namedtuple
     from typing import NamedTuple
@@ -30,7 +80,7 @@ def list_builds():
         return build_job_view(job.id,
                               job.state.value,
                               get_time_str(job.execution_info.start_time),
-                              get_time_str(job.execution_info.end_time),
+                              get_time_str(job.execution_info.end_time) if job.execution_info.end_time else 'N/A',
                               job.execution_info.terminate_reason)
 
     batch_client = get_batch_client()
@@ -41,15 +91,21 @@ def list_builds():
 
 
 @app.route('/api/build', methods=['POST'])
-def create_build():
-    from .actions import create_build_job
-    from .models import (get_batch_client, get_blob_storage_client, get_source_control_info)
+def post_build():
+    from .operations import create_build_job
 
-    build_job_id = create_build_job(get_batch_client(), get_blob_storage_client(), get_source_control_info())
-    return build_job_id
+    build_job_id = create_build_job(request.form['branch'])
+
+    for each in request.headers.get('Accept').split(','):
+        if each in ('text/html', 'application/xhtml+xml'):
+            return redirect(url_for('list_builds'))
+
+    import json
+    return json.dumps({'job_id': build_job_id})
 
 
 @app.route('/api/test', methods=['POST'])
+@login_required
 def create_test_job():
     from .actions import create_test_job as start_test
     logger = get_logger()
@@ -59,6 +115,7 @@ def create_test_job():
 
 
 @app.route('/job', methods=['GET'])
+@login_required
 def show_job():
     from collections import namedtuple
     from .models import get_batch_client
@@ -85,8 +142,3 @@ def show_job():
         ))
     except BatchErrorException:
         return render_template('error.html', error='Job {} is not found.'.format(job_id))
-
-
-@app.route('/headers')
-def headers():
-    return str(list(h for h in request.headers))

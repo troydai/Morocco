@@ -3,6 +3,8 @@ import logging
 from collections import namedtuple
 from typing import NamedTuple, Union
 
+from flask_login import UserMixin
+
 from azure.batch import BatchServiceClient
 from azure.batch.models import CloudPool
 from azure.storage.blob import BlockBlobService
@@ -13,7 +15,9 @@ StorageAccountInfo = namedtuple('StorageAccountInfo', ['account', 'key'])
 AutomationActorInfo = NamedTuple('AutomationActorInfo', [('account', str), ('key', str), ('tenant', str)])
 
 
-# GeneralSettings = namedtuple('GeneralSettings', ['batch', 'source', 'storage'])
+class User(UserMixin):
+    def __init__(self, user_id: str):
+        self.id = user_id
 
 
 def get_setting_from_file() -> Union[dict, None]:

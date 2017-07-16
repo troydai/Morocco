@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    {% block addition_meta %}{% endblock %}
     <title>Azure CLI 2.0 Automation - {% block title %}{% endblock %}</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css"
           integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
@@ -32,10 +33,26 @@
                 <a class="nav-link" href="{{ url_for('list_builds') }}">Builds</a>
             </li>
         </ul>
-        <form class="form-inline my-2 my-lg-0">
-            <input class="form-control mr-sm-2" type="text" placeholder="Search">
-            <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
-        </form>
+        {% if current_user.is_authenticated %}
+            <form class="form-inline my-2 my-lg-0" action="{{ url_for('logout') }}" method="post">
+                <label class="mr-sm-2">{{ current_user.id }}</label>
+                <button class="btn btn-secondary btn-sm" type="submit">Logout</button>
+            </form>
+        {% else %}
+            <form class="form-inline my-2 my-lg-0"
+                  action="{{ config['auth_authorization_endpoint'] }}"
+                  method="get">
+                <input type="hidden" name="tenant" value="{{ config['auth_tenant'] }}">
+                <input type="hidden" name="client_id" value="{{ config['auth_client_id'] }}">
+                <input type="hidden" name="response_type" value="id_token">
+                <input type="hidden" name="scope" value="openid">
+                <input type="hidden" name="nonce" value="a nonce, should be randomized">
+                <input type="hidden" name="redirect_uri" value="{{ url_for('signin_callback', _external=True) }}">
+                <input type="hidden" name="response_mode" value="form_post">
+                <input type="hidden" name="state" value="">
+                <button class="btn btn-primary btn-sm" type="submit">Login</button>
+            </form>
+        {% endif %}
     </div>
 </nav>
 <div class="container">

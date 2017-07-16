@@ -18,3 +18,10 @@ def generate_build_id() -> str:
 
 def get_time_str(time: datetime) -> str:
     return time.strftime('%Y-%m-%d %H:%M:%S UTC')
+
+
+def get_tenant_from_endpoint(endpoint: str) -> str:
+    from urllib.parse import urlparse
+    tenant, *_ = urlparse(endpoint)[2].split('/', 1)
+
+    return tenant
