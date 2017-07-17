@@ -17,7 +17,7 @@ AutomationActorInfo = NamedTuple('AutomationActorInfo', [('account', str), ('key
 
 class User(UserMixin):
     def __init__(self, user_id: str):
-        self.id = user_id
+        self.id = user_id   # pylint: disable=invalid-name
 
 
 def get_setting_from_file() -> Union[dict, None]:

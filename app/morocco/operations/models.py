@@ -1,5 +1,5 @@
-from ..util import get_time_str
 from azure.batch.models import CloudJob
+from morocco.util import get_time_str
 
 
 class BasicJobView(object):
@@ -7,7 +7,7 @@ class BasicJobView(object):
         self.job = job
 
     @property
-    def id(self):
+    def id(self):  # pylint: disable=invalid-name
         return self.job.id
 
     @property

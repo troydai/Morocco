@@ -3,10 +3,12 @@ from datetime import datetime, timedelta
 
 from azure.batch.models import (TaskAddParameter, JobAddParameter, JobListOptions, PoolInformation, OutputFile,
                                 OutputFileDestination, OutputFileUploadOptions, OutputFileUploadCondition,
-                                OutputFileBlobContainerDestination, OnAllTasksComplete)
+                                OutputFileBlobContainerDestination, OnAllTasksComplete, JobPreparationTask,
+                                JobManagerTask, EnvironmentSetting, ResourceFile)
 from azure.storage.blob import ContainerPermissions
 
-from morocco.models import get_batch_client, get_source_control_info, get_batch_pool, get_blob_storage_client
+from morocco.models import (get_batch_client, get_source_control_info, get_batch_pool, get_blob_storage_client,
+                            get_automation_actor_info, get_batch_account_info)
 from morocco.util import get_command_string, get_logger, generate_build_id
 from morocco.operations.models import BasicJobView
 
@@ -87,16 +89,6 @@ def create_build_job(branch: str) -> str:
 
 
 def create_test_job(build_id: str, run_live: bool = False) -> str:  # pylint: disable=too-many-locals
-    import sys
-    from datetime import datetime, timedelta
-    from typing import List
-    from azure.batch.models import (JobPreparationTask, JobAddParameter, JobManagerTask, OnAllTasksComplete,
-                                    PoolInformation, EnvironmentSetting, ResourceFile)
-    from azure.storage.blob.models import ContainerPermissions
-    from morocco.util import get_logger, get_command_string
-    from morocco.models import (get_batch_client, get_batch_account_info, get_blob_storage_client, get_automation_actor_info,
-                                get_batch_pool)
-
     logger = get_logger('test')
 
     batch_account = get_batch_account_info()
@@ -105,11 +97,11 @@ def create_test_job(build_id: str, run_live: bool = False) -> str:  # pylint: di
     automation_actor = get_automation_actor_info()
     job_id = 'test-{}'.format(datetime.utcnow().strftime('%Y%m%d-%H%M%S'))
 
-    def _list_build_resource_files() -> List[ResourceFile]:
+    def _list_build_resource_files() -> Iterable[ResourceFile]:
         """ List the files belongs to the target build in the build blob container """
         if not storage_client.get_container_properties('builds'):
             logger.error('The build container %s is not found.', 'builds')
-            sys.exit(2)
+            raise ValueError('The build not found.')
 
         sas = storage_client.generate_container_shared_access_signature(container_name='builds',
                                                                         permission=ContainerPermissions(read=True),

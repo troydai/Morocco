@@ -1,24 +1,23 @@
-from ..models import User
+from flask import Config
+from morocco.models import User
 
 
-def openid_signout(post_logout_redirect_uri: str = None):
+def openid_signout(config: Config, post_logout_redirect_uri: str = None):
     from urllib.parse import urlencode
     from flask import url_for, redirect
     from flask_login import logout_user
-    from ..main import app
 
     logout_user()
 
     redirect_uri = post_logout_redirect_uri or url_for('index', _external=True)
-    sign_out_uri = app.config['auth_signout_uri']
+    sign_out_uri = config['auth_signout_uri']
 
     return redirect('{}?{}'.format(sign_out_uri, urlencode({'post_logout_redirect_uri': redirect_uri})))
 
 
-def openid_callback():
+def openid_callback(config: Config):
     from flask import redirect, request, render_template, url_for
     from flask_login import login_user
-    from morocco.auth import AzureJWS
 
     if 'error' in request.form:
         return render_template('error.html', error='Fail to sign in. Error: {}. Description: {}.'.format(
@@ -31,32 +30,32 @@ def openid_callback():
     id_token, redirect_uri = request.form['id_token'], request.form.get('state', None) or url_for('index')
 
     try:
-        jws = AzureJWS(id_token)
-    except Exception:  # pylint: too-broad-except
+        public_key_mgr = config['auth_public_key_manager']
+        payload = public_key_mgr.get_id_token_payload(id_token)
+    except Exception:  # pylint: disable=broad-except
         return render_template('error.html', error='Fail to validate id_token.')
 
-    user = User(user_id=jws.payload['upn'])
+    user = User(user_id=payload['upn'])
     login_user(user, remember=True, fresh=True)
 
     return redirect(redirect_uri)
 
 
-def openid_login():
+def openid_login(config: Config):
     from flask import request, url_for, render_template
     from urllib.parse import urlencode
     from uuid import uuid4
-    from ..main import app
 
     redirect_uri = request.args.get('redirect_uri') or url_for('index')
 
     kwargs = {'_external': True}
-    if not app.config['is_local_server']:
+    if not config['is_local_server']:
         kwargs['_scheme'] = 'https'
 
-    azure_signin_uri = '{}?{}'.format(app.config['auth_authorization_endpoint'],
+    azure_signin_uri = '{}?{}'.format(config['auth_authorization_endpoint'],
                                       urlencode({
-                                          'tenant': app.config['auth_tenant'],
-                                          'client_id': app.config['auth_client_id'],
+                                          'tenant': config['auth_tenant'],
+                                          'client_id': config['auth_client_id'],
                                           'response_type': 'id_token',
                                           'scope': 'openid',
                                           'nonce': str(uuid4()),

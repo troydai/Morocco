@@ -4,11 +4,11 @@ from flask import Flask, render_template, request, redirect, url_for
 from flask_login import LoginManager, login_required
 
 import morocco.operations
-from morocco.auth import init_auth_config
+import morocco.auth
 from morocco.util import get_logger
 
 app = Flask(__name__)  # pylint: disable=invalid-name
-init_auth_config(app.config)
+morocco.auth.init_auth_config(app.config)
 app.config['is_local_server'] = os.environ.get('MOROCCO_LOCAL_SERVER', False)
 
 if not app.secret_key:
@@ -55,22 +55,19 @@ def index():
 @app.route('/login', methods=['GET'])
 def login():
     """Redirect user agent to Azure AD sign-in page"""
-    from morocco.auth import openid_login
-    return openid_login()
+    return morocco.auth.openid_login(app.config)
 
 
 @app.route('/signin-callback', methods=['POST'])
 def signin_callback():
     """Redirect from AAD sign in page"""
-    from morocco.auth import openid_callback
-    return openid_callback()
+    return morocco.auth.openid_callback(app.config)
 
 
 @app.route('/logout', methods=['POST'])
 def logout():
     """Logout from both this application as well as Azure OpenID sign in."""
-    from morocco.auth import openid_signout
-    return openid_signout()
+    return morocco.auth.openid_signout(app.config)
 
 
 @app.route('/builds', methods=['GET'])

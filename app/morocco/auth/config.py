@@ -1,5 +1,6 @@
 import os
 from flask import Config
+from morocco.auth.jwt import AzureADPublicKeysManager
 
 
 def init_auth_config(config: Config) -> None:
@@ -12,7 +13,6 @@ def init_auth_config(config: Config) -> None:
     except KeyError as ex:
         raise EnvironmentError('Missing environment variable for configuration. [{}]'.format(ex))
 
-
     config_url = 'https://login.microsoftonline.com/{}/.well-known/openid-configuration' \
         .format(config['auth_tenant'])
     response = requests.get(config_url)
@@ -24,3 +24,4 @@ def init_auth_config(config: Config) -> None:
     config['auth_token_endpoint'] = result['token_endpoint']
     config['auth_jwks_uri'] = result['jwks_uri']
     config['auth_signout_uri'] = result['end_session_endpoint']
+    config['auth_public_key_manager'] = AzureADPublicKeysManager(config['auth_jwks_uri'], config['auth_client_id'])
