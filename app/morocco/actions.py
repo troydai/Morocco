@@ -1,6 +1,7 @@
 def create_test_job(build_id: str, run_live: bool = False) -> str:  # pylint: disable=too-many-locals
     import sys
     from datetime import datetime, timedelta
+    from typing import List
     from azure.batch.models import (JobPreparationTask, JobAddParameter, JobManagerTask, OnAllTasksComplete,
                                     PoolInformation, EnvironmentSetting, ResourceFile)
     from azure.storage.blob.models import ContainerPermissions
