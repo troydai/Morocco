@@ -68,7 +68,7 @@ def logout():
 
 @app.route('/builds', methods=['GET'])
 @login_required
-def list_builds():
+def get_builds():
     from collections import namedtuple
     from typing import NamedTuple
     from .models import get_batch_client
@@ -98,7 +98,7 @@ def post_build():
 
     for each in request.headers.get('Accept').split(','):
         if each in ('text/html', 'application/xhtml+xml'):
-            return redirect(url_for('list_builds'))
+            return redirect(url_for('get_builds'))
 
     import json
     return json.dumps({'job_id': build_job_id})
