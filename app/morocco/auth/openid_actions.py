@@ -49,6 +49,10 @@ def openid_login():
 
     redirect_uri = request.args.get('redirect_uri') or url_for('index')
 
+    kwargs = {'_external': True}
+    if not app.debug:
+        kwargs['_scheme'] = 'https'
+
     azure_signin_uri = '{}?{}'.format(app.config['auth_authorization_endpoint'],
                                       urlencode({
                                           'tenant': app.config['auth_tenant'],
@@ -56,7 +60,7 @@ def openid_login():
                                           'response_type': 'id_token',
                                           'scope': 'openid',
                                           'nonce': str(uuid4()),
-                                          'redirect_uri': url_for('signin_callback', _external=True),
+                                          'redirect_uri': url_for('signin_callback', **kwargs),
                                           'response_mode': 'form_post',
                                           'state': redirect_uri
                                       }))
