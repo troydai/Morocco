@@ -1,0 +1,26 @@
+{% extends '_layout.html' %}
+{% block title %}Tests{% endblock %}
+{% block body %}
+    <div class="row">
+        <table class="table table-hover">
+            <thead>
+            <tr>
+                <th>Id</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>State</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for job in jobs %}
+                <tr>
+                    <td>{{ job.id }}</td>
+                    <td>{{ job.start_time }}</td>
+                    <td>{{ job.end_time }}</td>
+                    <td>{{ job.state }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

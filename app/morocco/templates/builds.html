@@ -23,16 +23,16 @@
             </tr>
             </thead>
             <tbody>
-            {% for build in builds %}
+            {% for job in jobs %}
                 <tr>
-                    <td>{{ build.id }}</td>
-                    <td>{{ build.start_time }}</td>
-                    <td>{{ build.end_time }}</td>
-                    <td>{{ build.state }}</td>
+                    <td>{{ job.id }}</td>
+                    <td>{{ job.start_time }}</td>
+                    <td>{{ job.end_time }}</td>
+                    <td>{{ job.state }}</td>
                     <td>
                         <form class="form-inline" action="{{ url_for('create_test_job') }}" method="post">
                             <div class="form-group">
-                                <input type="hidden" name="build_job" value="{{ build.id }}">
+                                <input type="hidden" name="build_job" value="{{ job.id }}">
                                 <button type="submit" class="btn btn-sm mr-2">Run</button>
                                 <div class="form-check form-check-inline">
                                     <label for="inputRunLive" class="form-check-label">
