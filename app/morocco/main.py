@@ -1,9 +1,9 @@
 import os
 import logging
-from flask import Flask, render_template, request, redirect, url_for, make_response
+from flask import Flask, render_template, request, redirect, url_for
 from flask_login import LoginManager, login_required
-from .auth import init_auth_config
-from .util import get_logger
+from morocco.auth import init_auth_config
+from morocco.util import get_logger
 
 app = Flask(__name__)  # pylint: disable=invalid-name
 init_auth_config(app.config)
@@ -20,7 +20,7 @@ if app.debug:
 
 @login_manager.user_loader
 def load_user(user_id):
-    from .models import User
+    from morocco.models import User
     get_logger('login').info('loading user {}'.format(user_id))
     return User(user_id)
 
@@ -48,21 +48,21 @@ def index():
 @app.route('/login', methods=['GET'])
 def login():
     """Redirect user agent to Azure AD sign-in page"""
-    from .auth import openid_login
+    from morocco.auth import openid_login
     return openid_login()
 
 
 @app.route('/signin-callback', methods=['POST'])
 def signin_callback():
     """Redirect from AAD sign in page"""
-    from .auth import openid_callback
+    from morocco.auth import openid_callback
     return openid_callback()
 
 
 @app.route('/logout', methods=['POST'])
 def logout():
     """Logout from both this application as well as Azure OpenID sign in."""
-    from .auth import openid_signout
+    from morocco.auth import openid_signout
     return openid_signout()
 
 
@@ -71,8 +71,8 @@ def logout():
 def get_builds():
     from collections import namedtuple
     from typing import NamedTuple
-    from .models import get_batch_client
-    from .util import get_time_str
+    from morocco.models import get_batch_client
+    from morocco.util import get_time_str
     from azure.batch.models import JobListOptions, CloudJob
 
     def _transform(job: CloudJob) -> NamedTuple:
@@ -92,7 +92,7 @@ def get_builds():
 
 @app.route('/api/build', methods=['POST'])
 def post_build():
-    from .operations import create_build_job
+    from morocco.operations import create_build_job
 
     build_job_id = create_build_job(request.form['branch'])
 
@@ -107,7 +107,7 @@ def post_build():
 @app.route('/api/test', methods=['POST'])
 @login_required
 def create_test_job():
-    from .actions import create_test_job as start_test
+    from morocco.actions import create_test_job as start_test
     logger = get_logger()
     test_job_id = start_test(build_id=request.form['build_job'], run_live='live' in request.form)
     logger.info('Create new test job %s', test_job_id)
@@ -118,8 +118,8 @@ def create_test_job():
 @login_required
 def show_job():
     from collections import namedtuple
-    from .models import get_batch_client
-    from .util import get_time_str
+    from morocco.models import get_batch_client
+    from morocco.util import get_time_str
     from azure.batch.models import BatchErrorException, TaskState
 
     job_view = namedtuple('job_view', ['id', 'description', 'state', 'creation_time', 'last_modified', 'total_tasks',

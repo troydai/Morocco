@@ -1,21 +1,11 @@
-from typing import List
-from azure.batch import BatchServiceClient
-from azure.storage.blob import BlockBlobService
-from .models import SourceControlInfo
-
-
-
-
-
-
 def create_test_job(build_id: str, run_live: bool = False) -> str:  # pylint: disable=too-many-locals
     import sys
     from datetime import datetime, timedelta
     from azure.batch.models import (JobPreparationTask, JobAddParameter, JobManagerTask, OnAllTasksComplete,
                                     PoolInformation, EnvironmentSetting, ResourceFile)
     from azure.storage.blob.models import ContainerPermissions
-    from .util import get_logger, get_command_string
-    from .models import (get_batch_client, get_batch_account_info, get_blob_storage_client, get_automation_actor_info,
+    from morocco.util import get_logger, get_command_string
+    from morocco.models import (get_batch_client, get_batch_account_info, get_blob_storage_client, get_automation_actor_info,
                          get_batch_pool)
 
     logger = get_logger('test')

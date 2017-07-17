@@ -18,7 +18,7 @@ def openid_signout(post_logout_redirect_uri: str = None):
 def openid_callback():
     from flask import redirect, request, render_template, url_for
     from flask_login import login_user
-    from .jwt import AzureJWS
+    from morocco.auth import AzureJWS
 
     if 'error' in request.form:
         return render_template('error.html', error='Fail to sign in. Error: {}. Description: {}.'.format(

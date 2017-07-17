@@ -21,7 +21,7 @@ class User(UserMixin):
 
 
 def get_setting_from_file() -> Union[dict, None]:
-    from .consts import EnvironmentVariableNames
+    from morocco.consts import EnvironmentVariableNames
     logger = logging.getLogger(__name__)
 
     file_path = os.getenv(EnvironmentVariableNames.setting_file)

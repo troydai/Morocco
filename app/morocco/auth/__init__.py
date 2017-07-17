@@ -5,6 +5,6 @@ Reference:
   - https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-protocols-openid-connect-code
 """
 
-from .jwt import AzureJWS
-from .config import init_auth_config
-from .openid_actions import openid_signout, openid_callback, openid_login
+from morocco.auth.jwt import AzureJWS
+from morocco.auth.config import init_auth_config
+from morocco.auth.openid_actions import openid_signout, openid_callback, openid_login
