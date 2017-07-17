@@ -47,7 +47,8 @@
                 <input type="hidden" name="response_type" value="id_token">
                 <input type="hidden" name="scope" value="openid">
                 <input type="hidden" name="nonce" value="a nonce, should be randomized">
-                <input type="hidden" name="redirect_uri" value="{{ url_for('signin_callback', _external=True) }}">
+                <input type="hidden" name="redirect_uri"
+                       value="{{ url_for('signin_callback', _external=True, _scheme='http' if config['is_local_server'] else 'https') }}">
                 <input type="hidden" name="response_mode" value="form_post">
                 <input type="hidden" name="state" value="">
                 <button class="btn btn-primary btn-sm" type="submit">Login</button>

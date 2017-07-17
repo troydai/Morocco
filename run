@@ -1,1 +1,7 @@
-FLASK_APP='app/main.py' FLASK_DEBUG=1 flask run
+#!/usr/bin/env bash
+
+export FLASK_APP='app/morocco/main.py'
+export FLASK_DEBUG=1
+export MOROCCO_LOCAL_SERVER=True
+
+flask run

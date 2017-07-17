@@ -7,6 +7,7 @@ from morocco.util import get_logger
 
 app = Flask(__name__)  # pylint: disable=invalid-name
 init_auth_config(app.config)
+app.config['is_local_server'] = os.environ.get('MOROCCO_LOCAL_SERVER', False)
 
 if not app.secret_key:
     app.secret_key = 'session secret key for local testing'
@@ -38,7 +39,7 @@ def unauthorized_handler():
 
 @app.before_request
 def redirect_https():
-    if 'X-Arr-Ssl' not in request.headers and not app.debug:
+    if 'X-Arr-Ssl' not in request.headers and not app.config['is_local_server']:
         redirect_url = request.url.replace('http', 'https')
         return redirect(redirect_url)
 

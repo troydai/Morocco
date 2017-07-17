@@ -50,7 +50,7 @@ def openid_login():
     redirect_uri = request.args.get('redirect_uri') or url_for('index')
 
     kwargs = {'_external': True}
-    if not app.debug:
+    if not app.config['is_local_server']:
         kwargs['_scheme'] = 'https'
 
     azure_signin_uri = '{}?{}'.format(app.config['auth_authorization_endpoint'],
