@@ -38,8 +38,9 @@ def unauthorized_handler():
 
 @app.before_request
 def redirect_https():
-    if 'X-Arr-Ssl' not in request.headers and os.environ.get('FLASK_DEBUG') != '1':
-        return redirect(url_for('index', _external=True, _scheme='https'))
+    if 'X-Arr-Ssl' not in request.headers and not app.debug:
+        redirect_url = request.url.replace('http', 'https')
+        return redirect(redirect_url)
 
 
 @app.route('/', methods=['GET'])
