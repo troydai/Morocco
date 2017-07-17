@@ -17,6 +17,9 @@ login_manager.init_app(app)
 if app.debug:
     logging.basicConfig(level=logging.DEBUG)
 
+if not app.debug:
+    app.config['PREFERRED_URL_SCHEME'] = 'https'
+
 
 @login_manager.user_loader
 def load_user(user_id):
