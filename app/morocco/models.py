@@ -121,8 +121,8 @@ def _read_section_from_file(named_tuple_type, section_name: str) -> NamedTuple:
 
 def _read_section_from_env(named_tuple_type, prefix: str) -> NamedTuple:
     try:
-        fields = ['MOROCCO_{}_{}'.format(prefix, f).upper() for f in named_tuple_type._fields]
-        kwargs = {f: os.environ[f] for f in fields}
+        fields = {f: 'MOROCCO_{}_{}'.format(prefix, f).upper() for f in named_tuple_type._fields}
+        kwargs = {f: os.environ[env_name] for f, env_name in fields.items()}
         return named_tuple_type(**kwargs)
     except KeyError as ex:
         raise EnvironmentError('Missing environment settings. {}'.format(ex))
