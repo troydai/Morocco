@@ -21,3 +21,13 @@ class BasicJobView(object):
     @property
     def state(self):
         return self.job.state.value
+    
+    @property
+    def build_id(self):
+        if not self.job.metadata:
+            return 'N/A'
+
+        build_metadata = next(m for m in self.job.metadata if m.name == 'build')
+        if build_metadata:
+            return build_metadata.value
+        return 'N/A'

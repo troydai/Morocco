@@ -1,10 +1,12 @@
+import os
+import base64
 from typing import Iterable
 from datetime import datetime, timedelta
 
 from azure.batch.models import (TaskAddParameter, JobAddParameter, JobListOptions, PoolInformation, OutputFile,
                                 OutputFileDestination, OutputFileUploadOptions, OutputFileUploadCondition,
                                 OutputFileBlobContainerDestination, OnAllTasksComplete, JobPreparationTask,
-                                JobManagerTask, EnvironmentSetting, ResourceFile)
+                                JobManagerTask, EnvironmentSetting, ResourceFile, MetadataItem)
 from azure.storage.blob import ContainerPermissions
 
 from morocco.models import (get_batch_client, get_source_control_info, get_batch_pool, get_blob_storage_client,
@@ -27,16 +29,22 @@ def _get_build_blob_container_url() -> str:
 
 
 def _list_jobs(odata_filter: str) -> Iterable[BasicJobView]:
-    for job in get_batch_client().job.list(JobListOptions(odata_filter)):
+    for job in get_batch_client().job.list(JobListOptions(filter=odata_filter)):
         yield BasicJobView(job)
 
 
 def list_test_jobs() -> Iterable[BasicJobView]:
-    return _list_jobs("startswith(id, 'test')")
+    before_date = (datetime.utcnow() - timedelta(days=7)).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+    return sorted(_list_jobs("startswith(id, 'test') and creationTime ge DateTime'{}'".format(before_date)),
+                  key=lambda job_view: job_view.job.creation_time,
+                  reverse=True)
 
 
 def list_build_jobs() -> Iterable[BasicJobView]:
-    return _list_jobs("startswith(id, 'build')")
+    before_date = (datetime.utcnow() - timedelta(days=7)).strftime('%Y-%m-%dT%H:%M:%S.000Z')
+    return sorted(_list_jobs("startswith(id, 'build') and creationTime ge DateTime'{}'".format(before_date)),
+                  key=lambda job_view: job_view.job.creation_time,
+                  reverse=True)
 
 
 def create_build_job(branch: str) -> str:
@@ -59,10 +67,18 @@ def create_build_job(branch: str) -> str:
         logger.error('Cannot find a build pool. Please check the pools list in config file.')
         raise ValueError('Fail to find a build pool.')
 
+    # secret is a random string used to verify the identity of caller when one task requests the service to do
+    # something. the secret is saved to the job definition as metadata, and it is passed to some tasks as well.
+    secret = base64.b64encode(os.urandom(64)).decode('utf-8')
+
+    job_metadata = [MetadataItem('usage', 'build'),
+                    MetadataItem('secret', secret)]
+
     logger.info('Creating build job %s in pool %s', build_id, pool.id)
     batch_client.job.add(JobAddParameter(id=build_id,
                                          pool_info=PoolInformation(pool.id),
-                                         on_all_tasks_complete=OnAllTasksComplete.terminate_job))
+                                         on_all_tasks_complete=OnAllTasksComplete.terminate_job,
+                                         metadata=job_metadata))
     logger.info('Job %s is created.', build_id)
 
     build_commands = [
@@ -154,6 +170,16 @@ def create_test_job(build_id: str, run_live: bool = False) -> str:  # pylint: di
         job_environment.append(EnvironmentSetting(name='AUTOMATION_SP_PASSWORD', value=automation_actor.key))
         job_environment.append(EnvironmentSetting(name='AUTOMATION_SP_TENANT', value=automation_actor.tenant))
 
+    # secret is a random string used to verify the identity of caller when one task requests the service to do
+    # something. the secret is saved to the job definition as metadata, and it is passed to some tasks as well.
+    secret = base64.b64encode(os.urandom(64)).decode('utf-8')
+
+    # metadata
+    job_metadata = [MetadataItem('usage', 'test'),
+                    MetadataItem('secret', secret),
+                    MetadataItem('build', build_id),
+                    MetadataItem('live', str(run_live))]
+
     # create automation job
     batch_client.job.add(JobAddParameter(
         id=job_id,
@@ -162,7 +188,8 @@ def create_test_job(build_id: str, run_live: bool = False) -> str:  # pylint: di
         common_environment_settings=job_environment,
         job_preparation_task=prep_task,
         job_manager_task=manage_task,
-        on_all_tasks_complete=OnAllTasksComplete.terminate_job))
+        on_all_tasks_complete=OnAllTasksComplete.terminate_job,
+        metadata=job_metadata))
 
     logger.info('Job %s is created with preparation task and manager task.', job_id)
     return job_id

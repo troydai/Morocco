@@ -9,6 +9,7 @@
                 <th>Start</th>
                 <th>End</th>
                 <th>State</th>
+                <th>Build</th>
             </tr>
             </thead>
             <tbody>
@@ -18,6 +19,7 @@
                     <td>{{ job.start_time }}</td>
                     <td>{{ job.end_time }}</td>
                     <td>{{ job.state }}</td>
+                    <td>{{ job.build_id }}</td>
                 </tr>
             {% endfor %}
             </tbody>
