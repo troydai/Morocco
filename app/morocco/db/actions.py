@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta
 from typing import Union
 
-from azure.batch.models import CloudJob, JobState, JobListOptions
+from azure.batch.models import CloudJob, JobState
 from azure.storage.blob.models import BlobPermissions
 
-from morocco.models import get_blob_storage_client, get_batch_client
+from morocco.models import get_blob_storage_client
 from morocco.batch import get_metadata, get_job, list_tasks
 from morocco.util import get_logger
 from morocco.db.models import DbBuild, DbTestRun, DbUser
@@ -12,24 +12,6 @@ from morocco.exceptions import SecretError
 
 # SQLAlchemy is banana
 # pylint: disable=no-member
-
-
-def sync_all():
-    from morocco.db.models import db
-
-    logger = get_logger('sync_all')
-    logger.info('Drop all tables')
-    db.drop_all()
-    db.create_all()
-
-    batch = get_batch_client()
-
-    for job in batch.job.list(JobListOptions(filter="startswith(id, 'build')")):
-        get_or_add_build(job.id)
-
-    for job in batch.job.list(JobListOptions(filter="startswith(id, 'test')")):
-        get_or_add_test_run(job.id)
-        update_test_run(job.id)
 
 
 def get_or_add_user(user_id: str):

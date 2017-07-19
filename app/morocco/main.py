@@ -19,8 +19,16 @@ app = Flask(__name__)  # pylint: disable=invalid-name
 
 morocco.auth.init_auth_config(app.config)
 app.config['is_local_server'] = os.environ.get('MOROCCO_LOCAL_SERVER', False)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/test.db'
+
+
+if app.config['is_local_server']:
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('MOROCCO_DATABASE_URI') or 'sqlite:////tmp/test.db'
+    app.config['SQLALCHEMY_ECHO'] = True
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('MOROCCO_DATABASE_URI')
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 
 if not app.secret_key:
     app.secret_key = 'session secret key for local testing'
