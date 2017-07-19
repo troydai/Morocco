@@ -25,3 +25,11 @@ def get_tenant_from_endpoint(endpoint: str) -> str:
     tenant, *_ = urlparse(endpoint)[2].split('/', 1)
 
     return tenant
+
+
+def should_return_html(request) -> bool:
+    """Poor man's content negotiation"""
+    for each in request.headers.get('Accept').split(','):
+        if each in ('text/html', 'application/xhtml+xml'):
+            return True
+    return False

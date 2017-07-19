@@ -3,16 +3,15 @@ import base64
 from typing import Iterable
 from datetime import datetime, timedelta
 
-from azure.batch.models import (TaskAddParameter, JobAddParameter, JobListOptions, PoolInformation, OutputFile,
-                                OutputFileDestination, OutputFileUploadOptions, OutputFileUploadCondition,
-                                OutputFileBlobContainerDestination, OnAllTasksComplete, JobPreparationTask,
-                                JobManagerTask, EnvironmentSetting, ResourceFile, MetadataItem)
+from azure.batch.models import (TaskAddParameter, JobAddParameter, PoolInformation, OutputFile, OutputFileDestination,
+                                OutputFileUploadOptions, OutputFileUploadCondition, OutputFileBlobContainerDestination,
+                                OnAllTasksComplete, JobPreparationTask, JobManagerTask, EnvironmentSetting,
+                                ResourceFile, MetadataItem, CloudJob, CloudTask)
 from azure.storage.blob import ContainerPermissions
 
 from morocco.models import (get_batch_client, get_source_control_info, get_batch_pool, get_blob_storage_client,
                             get_automation_actor_info, get_batch_account_info)
 from morocco.util import get_command_string, get_logger, generate_build_id
-from morocco.operations.models import BasicJobView
 
 
 def _get_build_blob_container_url() -> str:
@@ -28,31 +27,12 @@ def _get_build_blob_container_url() -> str:
             expiry=(datetime.utcnow() + timedelta(days=1))))
 
 
-def _list_jobs(odata_filter: str) -> Iterable[BasicJobView]:
-    for job in get_batch_client().job.list(JobListOptions(filter=odata_filter)):
-        yield BasicJobView(job)
-
-
-def list_test_jobs() -> Iterable[BasicJobView]:
-    before_date = (datetime.utcnow() - timedelta(days=7)).strftime('%Y-%m-%dT%H:%M:%S.000Z')
-    return sorted(_list_jobs("startswith(id, 'test') and creationTime ge DateTime'{}'".format(before_date)),
-                  key=lambda job_view: job_view.job.creation_time,
-                  reverse=True)
-
-
-def list_build_jobs() -> Iterable[BasicJobView]:
-    before_date = (datetime.utcnow() - timedelta(days=7)).strftime('%Y-%m-%dT%H:%M:%S.000Z')
-    return sorted(_list_jobs("startswith(id, 'build') and creationTime ge DateTime'{}'".format(before_date)),
-                  key=lambda job_view: job_view.job.creation_time,
-                  reverse=True)
-
-
 def create_build_job(branch: str) -> str:
     """
     Schedule a build job in the given pool. returns the container for build output and job reference.
 
-    Building and running tests are two separate jobs so that the testing job can relies on job preparation tasks to
-    prepare test environment. The product and test build is an essential part of the preparation. The jobs can't be
+    Building and running tests are two separate builds so that the testing job can relies on job preparation tasks to
+    prepare test environment. The product and test build is an essential part of the preparation. The builds can't be
     combined because the preparation task has to be defined by the time the job is created. However neither the product
     or the test package is ready then.
     """
@@ -193,3 +173,11 @@ def create_test_job(build_id: str, run_live: bool = False) -> str:  # pylint: di
 
     logger.info('Job %s is created with preparation task and manager task.', job_id)
     return job_id
+
+
+def get_job(job_id: str) -> CloudJob:
+    return get_batch_client().job.get(job_id)
+
+
+def list_tasks(job_id: str) -> Iterable[CloudTask]:
+    return get_batch_client().task.list(job_id)

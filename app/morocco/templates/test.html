@@ -1,0 +1,69 @@
+{% extends '_layout.html' %}
+{% block title %}Run details - {{ test_run.id }}{% endblock %}
+{% block body %}
+    <div class="row mt-5">
+        <div class="col">
+            <h1 class="display-2">Run Details</h1>
+        </div>
+        <div class="col">
+            <dl class="row">
+                <dt class="col-sm-2">ID</dt>
+                <dd class="col-sm-10">{{ test_run.id }}</dd>
+                <dt class="col-sm-2">Build</dt>
+                <dd class="col-sm-10"><a
+                        href="{{ url_for('build', job_id=test_run.build_id) }}">{{ test_run.build_id or 'N/A' }}</a>
+                </dd>
+                <dt class="col-sm-2">Live</dt>
+                <dd class="col-sm-10">{{ test_run.live }}</dd>
+                <dt class="col-sm-2">Creation</dt>
+                <dd class="col-sm-10">{{ test_run.creation_time.strftime('%Y-%m-%d %H:%M') }}</dd>
+                <dt class="col-sm-2">State</dt>
+                <dd class="col-sm-10">{{ test_run.state }}</dd>
+            </dl>
+        </div>
+    </div>
+    <div class="row mb-sm-2">
+        <form class="mr-sm-2" action="{{ url_for('refresh_test', job_id=test_run.id) }}" method="post">
+            <button type="submit" class="btn btn-primary">Refresh</button>
+        </form>
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="progress mb-2 mt-2">
+                <div class="progress-bar bg-success" role="progressbar"
+                     style="width: {{ test_run.get_pass_percentage() }}%"> {{ test_run.get_pass_percentage() }}%
+                </div>
+                <div class="progress-bar bg-danger" role="progressbar"
+                     style="width: {{ 100-test_run.get_pass_percentage() }}%"></div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <table class="table table-condense table-hover">
+            <thead>
+            <tr>
+                <th>Module</th>
+                <th>Failed Test</th>
+                <th>Duration (s)</th>
+                <th>Log</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for test_case in test_run.test_cases if not test_case.passed %}
+                <tr>
+                    <td>{{ test_case.module }}</td>
+                    <td>{{ test_case.test_method }}</td>
+                    <td>{{ test_case.test_duration }}</td>
+                    <td><a href="#{{ test_case.test_full_name }}">Link</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% for test_case in test_run.test_cases if not test_case.passed %}
+        <div class="row mt-5">
+            <h4 id="{{ test_case.test_full_name }}">{{ test_case.test_method }}</h4>
+            <pre><code>{{ test_case.output }}</code></pre>
+        </div>
+    {% endfor %}
+{% endblock %}

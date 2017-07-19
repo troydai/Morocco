@@ -1,0 +1,9 @@
+{% extends '_layout.html' %}
+{% block title %}Admin{% endblock %}
+{% block body %}
+    <div class="row">
+        <form class="form-inline mt-sm-2 mb-sm-2 ml-sm-2" action="{{ url_for('sync_all') }}" method="post">
+            <button class="btn btn-primary">Sync all</button>
+        </form>
+    </div>
+{% endblock %}

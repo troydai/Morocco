@@ -1,48 +1,36 @@
 {% extends "_layout.html" %}
 {% block title %}Builds{% endblock %}
 {% block body %}
+    <div class="row mt-5">
+        <div class="col">
+            <h1 class="display-2">Builds List</h1>
+        </div>
+    </div>
     <div class="row">
         <form class="form-inline mt-sm-2 mb-sm-2 ml-sm-2" action="{{ url_for('post_build') }}" method="post">
-            <label class="mr-sm-2">Start a build</label>
+            <label class="mr-md-5"><b>Start a build</b></label>
             <label class="mr-sm-2" for="inputBranch">Branch</label>
             <input type="text" class="form-control mb-2 mr-sm-2 mb-sm-0" name="branch" value="master" id="inputBranch">
             <label class="mr-sm-2" for="inputTestAfter">Run Test</label>
             <input type="checkbox" class="form-control mb-2 mr-sm-2 mb-sm-0" id="inputTestAfter" name="test">
-            <button class="btn btn-primary">Build</button>
+            <button class="btn btn-primary btn-sm">Build</button>
         </form>
     </div>
     <div class="row">
-        <table class="table table-hover">
+        <table class="table table-hover table-sm">
             <thead>
             <tr>
                 <th>Id</th>
-                <th>Start</th>
-                <th>End</th>
+                <th>Creation (UTC)</th>
                 <th>State</th>
-                <th>Test</th>
             </tr>
             </thead>
             <tbody>
-            {% for job in jobs %}
+            {% for build in builds %}
                 <tr>
-                    <td>{{ job.id }}</td>
-                    <td>{{ job.start_time }}</td>
-                    <td>{{ job.end_time }}</td>
-                    <td>{{ job.state }}</td>
-                    <td>
-                        <form class="form-inline" action="{{ url_for('create_test_job') }}" method="post">
-                            <div class="form-group">
-                                <input type="hidden" name="build_job" value="{{ job.id }}">
-                                <button type="submit" class="btn btn-sm mr-2">Run</button>
-                                <div class="form-check form-check-inline">
-                                    <label for="inputRunLive" class="form-check-label">
-                                        <input class='form-check-input' type="checkbox" id="inputRunLive" name="live"
-                                               value="True"> Live
-                                    </label>
-                                </div>
-                            </div>
-                        </form>
-                    </td>
+                    <td><a href="{{ url_for('build', job_id=build.id) }}">{{ build.id }}</a></td>
+                    <td>{{ build.creation_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ build.state }}</td>
                 </tr>
             {% endfor %}
             </tbody>

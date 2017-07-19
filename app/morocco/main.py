@@ -1,15 +1,26 @@
 import os
 import logging
+import json
+
 from flask import Flask, render_template, request, redirect, url_for
 from flask_login import LoginManager, login_required
 
-import morocco.operations
+import morocco.batch
 import morocco.auth
 from morocco.util import get_logger
 
+
+def init_db():
+    from morocco.db import get_db
+    get_db().create_all()
+
+
 app = Flask(__name__)  # pylint: disable=invalid-name
+
 morocco.auth.init_auth_config(app.config)
 app.config['is_local_server'] = os.environ.get('MOROCCO_LOCAL_SERVER', False)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/test.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 if not app.secret_key:
     app.secret_key = 'session secret key for local testing'
@@ -23,11 +34,16 @@ if app.debug:
 if not app.debug:
     app.config['PREFERRED_URL_SCHEME'] = 'https'
 
+init_db()
+
 
 @login_manager.user_loader
 def load_user(user_id):
     from morocco.models import User
+    from morocco.db import get_or_add_user
+
     get_logger('login').info('loading user {}'.format(user_id))
+    get_or_add_user(user_id)
     return User(user_id)
 
 
@@ -71,62 +87,114 @@ def logout():
 
 
 @app.route('/builds', methods=['GET'])
+def builds():
+    from morocco.db import DbBuild
+    return render_template('builds.html', builds=DbBuild.query.order_by(DbBuild.creation_time.desc()).all())
+
+
+@app.route('/build/<string:job_id>', methods=['GET'])
+def build(job_id: str):
+    from morocco.db import DbBuild
+    return render_template('build.html', build=DbBuild.query.filter_by(id=job_id).first())
+
+
+@app.route('/build', methods=['POST'])
 @login_required
-def get_builds():
-    return render_template('builds.html', jobs=morocco.operations.list_build_jobs())
+def post_build():
+    from morocco.db import get_or_add_build
+    from morocco.batch import create_build_job
+
+    get_or_add_build(create_build_job(request.form['branch']))
+
+    return redirect(url_for('builds'))
+
+
+@app.route('/build/<string:job_id>', methods=['POST'])
+@login_required
+def refresh_build(job_id: str):
+    from morocco.db import update_build
+    update_build(job_id)
+
+    return redirect(url_for('build', job_id=job_id))
 
 
 @app.route('/tests', methods=['GET'])
+def tests():
+    from morocco.db import DbTestRun
+    return render_template('tests.html', test_runs=DbTestRun.query.order_by(DbTestRun.creation_time.desc()).all())
+
+
+@app.route('/test/<string:job_id>', methods=['GET'])
+def test(job_id: str):
+    from morocco.db import DbTestRun
+    return render_template('test.html', test_run=DbTestRun.query.filter_by(id=job_id).first())
+
+
+@app.route('/test', methods=['POST'])
 @login_required
-def get_tests():
-    return render_template('tests.html', jobs=morocco.operations.list_test_jobs())
+def post_test():
+    from morocco.batch import create_test_job
+    from morocco.db import get_or_add_test_run
+
+    get_or_add_test_run(create_test_job(request.form['build_id'], request.form['live'] == 'true'))
+
+    return redirect(url_for('tests'))
 
 
-@app.route('/api/build', methods=['POST'])
-def post_build():
-    build_job_id = morocco.operations.create_build_job(request.form['branch'])
-
-    for each in request.headers.get('Accept').split(','):
-        if each in ('text/html', 'application/xhtml+xml'):
-            return redirect(url_for('get_builds'))
-
-    import json
-    return json.dumps({'job_id': build_job_id})
-
-
-@app.route('/api/test', methods=['POST'])
+@app.route('/test/<string:job_id>', methods=['POST'])
 @login_required
-def create_test_job():
-    test_job_id = morocco.operations.create_test_job(build_id=request.form['build_job'],
-                                                     run_live='live' in request.form)
-    return redirect(url_for('show_job', job_id=test_job_id))
+def refresh_test(job_id: str):
+    from morocco.db import update_test_run
+
+    update_test_run(job_id)
+
+    return redirect(url_for('test', job_id=job_id))
 
 
-@app.route('/job', methods=['GET'])
+@app.route('/admin', methods=['GET'])
 @login_required
-def show_job():
-    from collections import namedtuple
-    from morocco.models import get_batch_client
-    from morocco.util import get_time_str
-    from azure.batch.models import BatchErrorException, TaskState
+def get_admin():
+    return render_template('admin.html')
 
-    job_view = namedtuple('job_view', ['id', 'description', 'state', 'creation_time', 'last_modified', 'total_tasks',
-                                       'running_tasks', 'completed_tasks'])
-    job_id = request.args.get('job_id')
+
+@app.route('/api/build/<string:job_id>', methods=['PUT'])
+def put_build(job_id: str):
+    from morocco.db import update_build_protected
+    from morocco.exceptions import SecretError
 
     try:
-        job = get_batch_client().job.get(job_id)
-        tasks = list(get_batch_client().task.list(job_id))
+        db_build = update_build_protected(job_id, request.form.get('secret'))
 
-        return render_template('job.html', job=job_view(
-            job.id,
-            job.display_name,
-            job.state,
-            get_time_str(job.creation_time),
-            get_time_str(job.last_modified),
-            len(tasks),
-            len([t for t in tasks if t.state == TaskState.running]),
-            len([t for t in tasks if t.state == TaskState.completed])
-        ))
-    except BatchErrorException:
-        return render_template('error.html', error='Job {} is not found.'.format(job_id))
+        if not db_build:
+            return 'Not found', 404
+
+        return json.dumps(db_build.get_view())
+
+    except SecretError:
+        return 'Invalid secret', 403
+
+
+@app.route('/api/test/<string:job_id>', methods=['PUT'])
+def put_test(job_id: str):
+    from morocco.db import update_test_run_protected
+    from morocco.exceptions import SecretError
+
+    try:
+        test_run = update_test_run_protected(job_id, request.form.get('secret'))
+
+        if not test_run:
+            return 'Not found', 404
+
+        return json.dumps(test_run.get_view())
+
+    except SecretError:
+        return 'Invalid secret', 403
+
+
+@app.route('/sync_all', methods=['POST'])
+@login_required
+def sync_all():
+    """Sync all batch builds data into the database"""
+    from morocco.db.actions import sync_all as sync_all_op
+    sync_all_op()
+    return redirect(url_for('index'))

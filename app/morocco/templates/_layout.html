@@ -6,6 +6,7 @@
     <title>Azure CLI 2.0 Automation - {% block title %}{% endblock %}</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css"
           integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css?family=Fira+Mono|Roboto" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.1.1.slim.min.js"
             integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n"
             crossorigin="anonymous"></script>
@@ -30,10 +31,13 @@
                 <a class="nav-link" href="{{ url_for('index') }}">Home</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('get_builds') }}">Builds</a>
+                <a class="nav-link" href="{{ url_for('builds') }}">Builds</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('get_tests') }}">Tests</a>
+                <a class="nav-link" href="{{ url_for('tests') }}">Tests</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('get_admin') }}">Admin</a>
             </li>
         </ul>
         {% if current_user.is_authenticated %}

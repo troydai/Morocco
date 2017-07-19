@@ -1,25 +1,35 @@
 {% extends '_layout.html' %}
-{% block title %}Tests{% endblock %}
+{% block title %}Test runs{% endblock %}
 {% block body %}
+    <div class="row mt-5">
+        <div class="col">
+            <h1 class="display-2">Test Runs List</h1>
+        </div>
+    </div>
     <div class="row">
-        <table class="table table-hover">
+        <table class="table table-hover table-sm">
             <thead>
             <tr>
                 <th>Id</th>
-                <th>Start</th>
-                <th>End</th>
+                <th>Create Time (UTC)</th>
                 <th>State</th>
+                <th>Live</th>
+                <th>Failed</th>
+                <th>Total</th>
                 <th>Build</th>
             </tr>
             </thead>
             <tbody>
-            {% for job in jobs %}
+            {% for test_run in test_runs %}
                 <tr>
-                    <td>{{ job.id }}</td>
-                    <td>{{ job.start_time }}</td>
-                    <td>{{ job.end_time }}</td>
-                    <td>{{ job.state }}</td>
-                    <td>{{ job.build_id }}</td>
+                    <td><a href="{{ url_for('test', job_id=test_run.id) }}">{{ test_run.id }}</a></td>
+                    <td>{{ test_run.creation_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ test_run.state }}</td>
+                    <td>{{ 'live' if test_run.live else '' }}</td>
+                    <td>{{ test_run.failed_tests }}</td>
+                    <td>{{ test_run.total_tests }}</td>
+                    <td><a href="{{ url_for('build', job_id=test_run.build_id) }}">{{ test_run.build_id or 'N/A' }}</a>
+                    </td>
                 </tr>
             {% endfor %}
             </tbody>
