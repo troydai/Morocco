@@ -5,10 +5,10 @@ from datetime import datetime, timedelta
 
 from flask import url_for
 
-from azure.batch.models import (TaskAddParameter, JobAddParameter, PoolInformation, OutputFile, OutputFileDestination,
-                                OutputFileUploadOptions, OutputFileUploadCondition, OutputFileBlobContainerDestination,
-                                OnAllTasksComplete, JobManagerTask, EnvironmentSetting, ResourceFile, MetadataItem,
-                                CloudJob, CloudTask, TaskDependencies)
+from azure.batch.models import (TaskAddParameter, JobAddParameter, JobPreparationTask, JobManagerTask, PoolInformation,
+                                OutputFile, OutputFileDestination, OutputFileUploadOptions, OutputFileUploadCondition,
+                                OutputFileBlobContainerDestination, OnAllTasksComplete, EnvironmentSetting,
+                                ResourceFile, MetadataItem, CloudJob, CloudTask, TaskDependencies)
 from azure.storage.blob import ContainerPermissions
 
 from morocco.models import (get_batch_client, get_source_control_info, get_batch_pool, get_blob_storage_client,
@@ -81,7 +81,9 @@ def create_build_job(branch: str) -> str:
                                   display_name='Build all product and test code.',
                                   output_files=[output_file])
 
-    report_cmd = 'curl -X put {} --data-urlencode secret={}'.format(url_for('put_build', job_id=build_id), secret)
+    report_cmd = 'curl -X put {} --data-urlencode secret={}'.format(
+        url_for('put_build', job_id=build_id, _external=True, _scheme='https'), secret)
+
     report_task = TaskAddParameter(id='report',
                                    command_line=get_command_string(report_cmd),
                                    depends_on=TaskDependencies(task_ids=[build_task.id]),
