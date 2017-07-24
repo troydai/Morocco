@@ -20,7 +20,7 @@ def load_config_models():
         settings = relationship('ProjectSetting', back_populates='project')
 
         def __repr__(self):
-            return f'<Project(name={self.name})>'
+            return '<Project(name={})>'.format(self.name)
 
     class ProjectSetting(model_base_class):
         __tablename__ = 'db_projectsetting'
@@ -31,7 +31,7 @@ def load_config_models():
         project = relationship(Project, back_populates='settings')
 
         def __repr__(self):
-            return f'<ProjectSetting(name={self.name},value={self.value})>'
+            return '<ProjectSetting(name={},value={})>'.format(self.name, self.value)
 
     return Project, ProjectSetting
 
