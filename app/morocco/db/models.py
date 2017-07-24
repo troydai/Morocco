@@ -1,24 +1,11 @@
 from typing import Union
 from collections import namedtuple
 
-from flask_sqlalchemy import SQLAlchemy
 from azure.batch.models import CloudTask, CloudJob
 
+from morocco.main import db
 
-# SQLAlchemy is banana
 # pylint: disable=no-member, invalid-name
-
-
-def create_db() -> SQLAlchemy:
-    from morocco.main import app
-    return SQLAlchemy(app)
-
-
-db = create_db()
-
-
-def get_db() -> SQLAlchemy:
-    return db
 
 
 class DbUser(db.Model):  # pylint: disable=too-few-public-methods

@@ -49,8 +49,8 @@
             <form class="form-inline my-2 my-lg-0"
                   action="{{ config['auth_authorization_endpoint'] }}"
                   method="get">
-                <input type="hidden" name="tenant" value="{{ config['auth_tenant'] }}">
-                <input type="hidden" name="client_id" value="{{ config['auth_client_id'] }}">
+                <input type="hidden" name="tenant" value="{{ config['MOROCCO_AUTH_TENANT'] }}">
+                <input type="hidden" name="client_id" value="{{ config['MOROCCO_AUTH_CLIENT_ID'] }}">
                 <input type="hidden" name="response_type" value="id_token">
                 <input type="hidden" name="scope" value="openid">
                 <input type="hidden" name="nonce" value="a nonce, should be randomized">

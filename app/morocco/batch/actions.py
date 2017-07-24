@@ -11,8 +11,8 @@ from azure.batch.models import (TaskAddParameter, JobAddParameter, JobPreparatio
                                 ResourceFile, MetadataItem, CloudJob, CloudTask, TaskDependencies)
 from azure.storage.blob import ContainerPermissions
 
-from morocco.models import (get_batch_client, get_source_control_info, get_batch_pool, get_blob_storage_client,
-                            get_automation_actor_info, get_batch_account_info)
+from morocco.core import (get_batch_client, get_source_control_info, get_batch_pool, get_blob_storage_client,
+                          get_automation_actor_info, get_batch_account_info)
 from morocco.util import get_command_string, get_logger, generate_build_id
 
 
@@ -100,7 +100,7 @@ def create_test_job(build_id: str, run_live: bool = False) -> str:  # pylint: di
     logger = get_logger('test')
 
     batch_account = get_batch_account_info()
-    batch_client = get_batch_client(batch_account)
+    batch_client = get_batch_client()
     storage_client = get_blob_storage_client()
     automation_actor = get_automation_actor_info()
     job_id = 'test-{}'.format(datetime.utcnow().strftime('%Y%m%d-%H%M%S'))

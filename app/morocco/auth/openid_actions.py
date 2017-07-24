@@ -1,5 +1,5 @@
 from flask import Config
-from morocco.models import User
+from morocco.auth.config import User
 
 
 def openid_signout(config: Config, post_logout_redirect_uri: str = None):
@@ -54,8 +54,8 @@ def openid_login(config: Config):
 
     azure_signin_uri = '{}?{}'.format(config['auth_authorization_endpoint'],
                                       urlencode({
-                                          'tenant': config['auth_tenant'],
-                                          'client_id': config['auth_client_id'],
+                                          'tenant': config['MOROCCO_AUTH_TENANT'],
+                                          'client_id': config['MOROCCO_AUTH_CLIENT_ID'],
                                           'response_type': 'id_token',
                                           'scope': 'openid',
                                           'nonce': str(uuid4()),

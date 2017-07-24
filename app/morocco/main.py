@@ -1,34 +1,27 @@
-import os
 import logging
 import json
 
 from flask import Flask, render_template, request, redirect, url_for
 from flask_login import LoginManager, login_required
+from flask_sqlalchemy import SQLAlchemy
 
 import morocco.batch
 import morocco.auth
+import morocco.core.config
+
 from morocco.util import get_logger
-
-
-def init_db():
-    from morocco.db import get_db
-    get_db().create_all()
 
 
 app = Flask(__name__)  # pylint: disable=invalid-name
 
+morocco.core.config.load_config(app.config)
 morocco.auth.init_auth_config(app.config)
-app.config['is_local_server'] = os.environ.get('MOROCCO_LOCAL_SERVER', False)
 
+if not app.debug:
+    app.config['PREFERRED_URL_SCHEME'] = 'https'
 
-if app.config['is_local_server']:
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('MOROCCO_DATABASE_URI') or 'sqlite:////tmp/test.db'
-    app.config['SQLALCHEMY_ECHO'] = True
-else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('MOROCCO_DATABASE_URI')
-
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
+if app.debug:
+    logging.basicConfig(level=logging.DEBUG)
 
 if not app.secret_key:
     app.secret_key = 'session secret key for local testing'
@@ -36,18 +29,12 @@ if not app.secret_key:
 login_manager = LoginManager()  # pylint: disable=invalid-name
 login_manager.init_app(app)
 
-if app.debug:
-    logging.basicConfig(level=logging.DEBUG)
-
-if not app.debug:
-    app.config['PREFERRED_URL_SCHEME'] = 'https'
-
-init_db()
+db = SQLAlchemy(app)  # pylint: disable=invalid-name
 
 
 @login_manager.user_loader
 def load_user(user_id):
-    from morocco.models import User
+    from morocco.auth import User
     from morocco.db import get_or_add_user
 
     get_logger('login').info('loading user {}'.format(user_id))
@@ -197,12 +184,3 @@ def put_test(job_id: str):
 
     except SecretError:
         return 'Invalid secret', 403
-
-
-@app.route('/sync_all', methods=['POST'])
-@login_required
-def sync_all():
-    """Sync all batch builds data into the database"""
-    from morocco.db.actions import sync_all as sync_all_op
-    sync_all_op()
-    return redirect(url_for('index'))

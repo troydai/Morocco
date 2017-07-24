@@ -4,7 +4,7 @@ from typing import Union
 from azure.batch.models import CloudJob, JobState
 from azure.storage.blob.models import BlobPermissions
 
-from morocco.models import get_blob_storage_client
+from morocco.core import get_blob_storage_client
 from morocco.batch import get_metadata, get_job, list_tasks
 from morocco.util import get_logger
 from morocco.db.models import DbBuild, DbTestRun, DbUser
