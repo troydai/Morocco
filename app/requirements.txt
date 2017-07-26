@@ -7,4 +7,5 @@ flask-login==0.4.0
 PyYAML==3.11
 PyJWT==1.5.2
 flask-sqlalchemy==2.2
+flask-migrate==2.0.4
 psycopg2==2.7.1

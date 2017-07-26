@@ -1,8 +1,9 @@
-from flask import Config
-from morocco.auth.config import User
+from typing import Callable
+from flask import current_app
+from flask_login import UserMixin
 
 
-def openid_signout(config: Config, post_logout_redirect_uri: str = None):
+def openid_logout(post_logout_redirect_uri: str = None):
     from urllib.parse import urlencode
     from flask import url_for, redirect
     from flask_login import logout_user
@@ -10,12 +11,12 @@ def openid_signout(config: Config, post_logout_redirect_uri: str = None):
     logout_user()
 
     redirect_uri = post_logout_redirect_uri or url_for('index', _external=True)
-    sign_out_uri = config['auth_signout_uri']
+    sign_out_uri = current_app.config['auth_signout_uri']
 
     return redirect('{}?{}'.format(sign_out_uri, urlencode({'post_logout_redirect_uri': redirect_uri})))
 
 
-def openid_callback(config: Config):
+def openid_callback(get_user_fn: Callable[[str], UserMixin]):
     from flask import redirect, request, render_template, url_for
     from flask_login import login_user
 
@@ -30,23 +31,24 @@ def openid_callback(config: Config):
     id_token, redirect_uri = request.form['id_token'], request.form.get('state', None) or url_for('index')
 
     try:
-        public_key_mgr = config['auth_public_key_manager']
+        public_key_mgr = current_app.config['auth_public_key_manager']
         payload = public_key_mgr.get_id_token_payload(id_token)
     except Exception:  # pylint: disable=broad-except
         return render_template('error.html', error='Fail to validate id_token.')
 
-    user = User(user_id=payload['upn'])
+    user = get_user_fn(payload['upn'])
     login_user(user, remember=True, fresh=True)
 
     return redirect(redirect_uri)
 
 
-def openid_login(config: Config):
+def openid_login():
     from flask import request, url_for, render_template
     from urllib.parse import urlencode
     from uuid import uuid4
 
     redirect_uri = request.args.get('redirect_uri') or url_for('index')
+    config = current_app.config
 
     kwargs = {'_external': True}
     if not config['is_local_server']:

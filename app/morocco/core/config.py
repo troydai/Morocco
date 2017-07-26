@@ -1,65 +1,35 @@
 import os
 from flask import Config
+
 from morocco.util import get_logger
+from morocco.auth import AzureADPublicKeysManager
 
 
-def load_config_models():
-    # pylint: disable=too-few-public-methods, invalid-name
-
-    from sqlalchemy import Column, Integer, String, ForeignKey
-    from sqlalchemy.orm import relationship
-    from sqlalchemy.ext.declarative import declarative_base
-
-    model_base_class = declarative_base()
-
-    class Project(model_base_class):
-        __tablename__ = 'db_project'
-        id = Column(Integer, primary_key=True)
-        name = Column(String)
-        description = Column(String)
-        settings = relationship('ProjectSetting', back_populates='project')
-
-        def __repr__(self):
-            return '<Project(name={})>'.format(self.name)
-
-    class ProjectSetting(model_base_class):
-        __tablename__ = 'db_projectsetting'
-        id = Column(Integer, primary_key=True)
-        name = Column(String)
-        value = Column(String)
-        project_id = Column(Integer, ForeignKey('db_project.id'))
-        project = relationship(Project, back_populates='settings')
-
-        def __repr__(self):
-            return '<ProjectSetting(name={},value={})>'.format(self.name, self.value)
-
-    return Project, ProjectSetting
-
-
-def load_config(app_config: Config) -> None:
+def load_config(app, project_setting_type) -> None:
     logger = get_logger(__name__)
-    try:
-        db_uri = os.environ['MOROCCO_DATABASE_URI']
-        project_name = os.environ['MOROCCO_CURRENT_PROJECT']
 
-        app_config['is_local_server'] = os.environ.get('MOROCCO_LOCAL_SERVER') == 'True'
-        app_config['SQLALCHEMY_DATABASE_URI'] = db_uri
-        app_config['MOROCCO_CURRENT_PROJECT'] = project_name
-        app_config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    except KeyError:
-        raise EnvironmentError('Missing environment MOROCCO_DATABASE_URI and/or MOROCCO_CURRENT_PROJECT.')
+    app.config['is_local_server'] = os.environ.get('MOROCCO_LOCAL_SERVER') == 'True'
 
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker
-
-    engine = create_engine(db_uri)
-    session_class = sessionmaker()
-    session_class.configure(bind=engine)
-    session = session_class()
-
-    project_model_class, _ = load_config_models()
-
-    project = session.query(project_model_class).filter(project_model_class.name == project_name).one()
-    for setting in project.settings:
+    for setting in project_setting_type.query.all():
         logger.info('add setting {}'.format(setting.name))
-        app_config[setting.name] = setting.value
+        app.config[setting.name] = setting.value
+
+    init_auth_config(app.config)
+
+
+def init_auth_config(config: Config) -> None:
+    import requests
+
+    config_url = 'https://login.microsoftonline.com/{}/.well-known/openid-configuration' \
+        .format(config['MOROCCO_AUTH_TENANT'])
+    response = requests.get(config_url)
+    if response.status_code != 200:
+        raise EnvironmentError('Fail to request Azure AD OpenID configuration from {}.'.format(config_url))
+
+    result = response.json()
+    config['auth_authorization_endpoint'] = result['authorization_endpoint']
+    config['auth_token_endpoint'] = result['token_endpoint']
+    config['auth_jwks_uri'] = result['jwks_uri']
+    config['auth_signout_uri'] = result['end_session_endpoint']
+    config['auth_public_key_manager'] = AzureADPublicKeysManager(config['auth_jwks_uri'],
+                                                                 config['MOROCCO_AUTH_CLIENT_ID'])

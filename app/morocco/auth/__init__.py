@@ -7,5 +7,5 @@ Reference:
 
 # pylint: disable=unused-import
 
-from morocco.auth.config import init_auth_config, User
-from morocco.auth.openid_actions import openid_signout, openid_callback, openid_login
+from morocco.auth.jwt import AzureADPublicKeysManager
+from morocco.auth.openid_actions import openid_logout, openid_callback, openid_login
