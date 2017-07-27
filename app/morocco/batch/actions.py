@@ -13,7 +13,7 @@ from azure.storage.blob import ContainerPermissions
 
 from morocco.core import (get_batch_client, get_source_control_info, get_batch_pool, get_blob_storage_client,
                           get_automation_actor_info, get_batch_account_info)
-from morocco.util import get_command_string, get_logger, generate_build_id
+from morocco.util import get_command_string, get_logger
 
 
 def _get_build_blob_container_url() -> str:
@@ -29,7 +29,7 @@ def _get_build_blob_container_url() -> str:
             expiry=(datetime.utcnow() + timedelta(days=1))))
 
 
-def create_build_job(branch: str) -> str:
+def create_build_job(commit_sha: str) -> CloudJob:
     """
     Schedule a build job in the given pool. returns the container for build output and job reference.
 
@@ -43,8 +43,8 @@ def create_build_job(branch: str) -> str:
 
     remote_source_dir = 'gitsrc'
     logger = get_logger('build')
-    build_id = generate_build_id()
     pool = get_batch_pool('build')
+
     if not pool:
         logger.error('Cannot find a build pool. Please check the pools list in config file.')
         raise ValueError('Fail to find a build pool.')
@@ -54,26 +54,29 @@ def create_build_job(branch: str) -> str:
     secret = base64.b64encode(os.urandom(64)).decode('utf-8')
 
     job_metadata = [MetadataItem('usage', 'build'),
-                    MetadataItem('secret', secret)]
+                    MetadataItem('secret', secret),
+                    MetadataItem('source_url', source_control_info.url),
+                    MetadataItem('source_sha', commit_sha)]
 
-    logger.info('Creating build job %s in pool %s', build_id, pool.id)
-    batch_client.job.add(JobAddParameter(id=build_id,
+    logger.info('Creating build job %s in pool %s', commit_sha, pool.id)
+    batch_client.job.add(JobAddParameter(id=commit_sha,
                                          pool_info=PoolInformation(pool.id),
                                          on_all_tasks_complete=OnAllTasksComplete.terminate_job,
                                          metadata=job_metadata,
                                          uses_task_dependencies=True))
-    logger.info('Job %s is created.', build_id)
+    logger.info('Job %s is created.', commit_sha)
 
     build_commands = [
-        'git clone -b {} -- {} gitsrc'.format(branch, source_control_info.url),
+        'git clone --depth=50 {} {}'.format(source_control_info.url, remote_source_dir),
         'pushd {}'.format(remote_source_dir),
+        'git checkout -qf {}'.format(commit_sha),
         './scripts/batch/build_all.sh'
     ]
 
     build_container_url = _get_build_blob_container_url()
 
     output_file = OutputFile('{}/artifacts/**/*.*'.format(remote_source_dir),
-                             OutputFileDestination(OutputFileBlobContainerDestination(build_container_url, build_id)),
+                             OutputFileDestination(OutputFileBlobContainerDestination(build_container_url, commit_sha)),
                              OutputFileUploadOptions(OutputFileUploadCondition.task_success))
 
     build_task = TaskAddParameter(id='build',
@@ -82,18 +85,18 @@ def create_build_job(branch: str) -> str:
                                   output_files=[output_file])
 
     report_cmd = 'curl -X put {} --data-urlencode secret={}'.format(
-        url_for('put_build', job_id=build_id, _external=True, _scheme='https'), secret)
+        url_for('put_build', job_id=commit_sha, _external=True, _scheme='https'), secret)
 
     report_task = TaskAddParameter(id='report',
                                    command_line=get_command_string(report_cmd),
                                    depends_on=TaskDependencies(task_ids=[build_task.id]),
                                    display_name='Request service to pull result')
 
-    batch_client.task.add(build_id, build_task)
-    batch_client.task.add(build_id, report_task)
-    logger.info('Build task is added to job %s', build_id)
+    batch_client.task.add(commit_sha, build_task)
+    batch_client.task.add(commit_sha, report_task)
+    logger.info('Build task is added to job %s', commit_sha)
 
-    return build_id
+    return batch_client.job.get(commit_sha)
 
 
 def create_test_job(build_id: str, run_live: bool = False) -> str:  # pylint: disable=too-many-locals

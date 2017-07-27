@@ -38,6 +38,7 @@ def init_database(app):
     class DbBuild(db.Model):
         id = db.Column(db.String, primary_key=True)
         creation_time = db.Column(db.DateTime)
+        batch_job = db.Column(db.String)
         state = db.Column(db.String)
         tests = db.relationship('DbTestRun', backref='build', lazy='dynamic')
 
@@ -165,55 +166,9 @@ def init_database(app):
 
         return user
 
-    def get_or_add_build(job_id: str) -> DbBuild:
-        logger = get_logger('db')
-        logger.info('get_or_add_build({})'.format(job_id))
-
-        build = DbBuild.query.filter_by(id=job_id).first()
-        if not build:
-            job = get_job(job_id)
-
-            build = DbBuild(job)
-
-            db.session.add(build)
-            logger.info('Add DbBuild {}'.format(job_id))
-            db.session.commit()
-            logger.info('Commit DbBuild {}'.format(job_id))
-
-            # Add the build to the database
-            build = DbBuild.query.filter_by(id=job_id).first()
-
-        logger.info('Return DbBuild {}'.format(job_id))
-        return build
-
     def update_build(job_id: str) -> None:
         get_or_add_build(job_id).update(get_job(job_id))
         db.session.commit()
-
-    def update_build_protected(job_id: str, secret: str) -> Union[DbBuild, None]:
-        logger = get_logger('db')
-        logger.info('update_build_protected({}, {})'.format(job_id, secret))
-
-        if not secret:
-            logger.warning('Missing secret. Request is rejected.')
-            raise SecretError()
-
-        build = DbBuild.query.filter_by(id=job_id).first()
-        if not build:
-            logger.warning('DbBuild {} is not found'.format(job_id))
-            return None
-
-        job = get_job(job_id)
-        expect_secret = get_metadata(job.metadata, 'secret')
-        if expect_secret != secret:
-            logger.warning('Unmatched secret. Request is rejected.')
-            raise SecretError()
-
-        build.update(job)
-        db.session.commit()
-        logger.info('The build {} is updated'.format(job_id))
-
-        return DbBuild.query.filter_by(id=job_id).first()
 
     def get_or_add_test_run(job_id: str) -> DbTestRun:
         logger = get_logger('db')
@@ -292,8 +247,7 @@ def init_database(app):
 
         return DbTestRun.query.filter_by(id=job_id).first()
 
-    funcs = (find_user, get_or_add_user, get_or_add_build, update_build, update_build_protected, get_or_add_test_run,
-             update_test_run, update_test_run_protected)
+    funcs = (find_user, get_or_add_user, update_build, get_or_add_test_run, update_test_run, update_test_run_protected)
 
     Migrate(app, db)
 

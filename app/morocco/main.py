@@ -6,6 +6,7 @@ import logging
 from flask import Flask, render_template, request, redirect, url_for
 from flask_login import LoginManager, login_required
 
+from morocco.batch import get_job, get_metadata
 from morocco.core import init_database, load_config
 from morocco.util import get_logger
 
@@ -15,9 +16,7 @@ DbUser, DbBuild, DbTestRun, DbTestCase, DbProjectSetting = models
 
 load_config(app, DbProjectSetting)
 
-(find_user, get_or_add_user, get_or_add_build, update_build, update_build_protected,
- get_or_add_test_run, update_test_run, update_test_run_protected) = funcs
-
+(find_user, get_or_add_user, update_build, get_or_add_test_run, update_test_run, update_test_run_protected) = funcs
 
 if not app.debug:
     app.config['PREFERRED_URL_SCHEME'] = 'https'
@@ -80,27 +79,37 @@ def builds():
     return render_template('builds.html', builds=DbBuild.query.order_by(DbBuild.creation_time.desc()).all())
 
 
-@app.route('/build/<string:job_id>', methods=['GET'])
-def build(job_id: str):
-    return render_template('build.html', build=DbBuild.query.filter_by(id=job_id).first())
+@app.route('/build/<string:sha>', methods=['GET'])
+def build(sha: str):
+    return render_template('build.html', build=DbBuild.query.filter_by(id=sha).first())
 
 
 @app.route('/build', methods=['POST'])
 @login_required
 def post_build():
+    import requests
     from morocco.batch import create_build_job
+    from morocco.core import get_source_control_info
 
-    get_or_add_build(create_build_job(request.form['branch']))
+    git_url = get_source_control_info().url
+    git_url = git_url.replace('https://github.com', 'https://api.github.com/repos')[:-4] + '/commits'
+    response = requests.get(git_url)
+    commit_sha = response.json()[0]['sha']
 
-    return redirect(url_for('builds'))
+    build_record = DbBuild.query.filter_by(id=commit_sha).one_or_none()
+    if not build_record:
+        db.session.add(DbBuild(create_build_job(commit_sha)))
+        db.session.commit()
+
+    return redirect(url_for('build', sha=commit_sha))
 
 
-@app.route('/build/<string:job_id>', methods=['POST'])
+@app.route('/build/<string:sha>', methods=['POST'])
 @login_required
-def refresh_build(job_id: str):
-    update_build(job_id)
+def refresh_build(sha: str):
+    update_build(sha)
 
-    return redirect(url_for('build', job_id=job_id))
+    return redirect(url_for('build', sha=sha))
 
 
 @app.route('/tests', methods=['GET'])
@@ -137,20 +146,25 @@ def get_admin():
     return render_template('admin.html')
 
 
-@app.route('/api/build/<string:job_id>', methods=['PUT'])
-def put_build(job_id: str):
-    from morocco.exceptions import SecretError
+@app.route('/api/build/<string:sha>', methods=['PUT'])
+def put_build(sha: str):
+    secret = request.form.get('secret')
+    if not secret:
+        return 'Missing secret', 403
 
-    try:
-        db_build = update_build_protected(job_id, request.form.get('secret'))
+    build_record = DbBuild.query.filter_by(id=sha).first()
+    if not build_record:
+        return 'Not found',  404
 
-        if not db_build:
-            return 'Not found', 404
-
-        return json.dumps(db_build.get_view())
-
-    except SecretError:
+    job = get_job(sha)
+    expect_secret = get_metadata(job.metadata, 'secret')
+    if expect_secret != secret:
         return 'Invalid secret', 403
+
+    build_record.update(job)
+    db.session.commit()
+
+    return json.dumps(build_record.get_view())
 
 
 @app.route('/api/test/<string:job_id>', methods=['PUT'])

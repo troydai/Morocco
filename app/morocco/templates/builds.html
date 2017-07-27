@@ -8,19 +8,16 @@
     </div>
     <div class="row">
         <form class="form-inline mt-sm-2 mb-sm-2 ml-sm-2" action="{{ url_for('post_build') }}" method="post">
-            <label class="mr-md-5"><b>Start a build</b></label>
-            <label class="mr-sm-2" for="inputBranch">Branch</label>
-            <input type="text" class="form-control mb-2 mr-sm-2 mb-sm-0" name="branch" value="master" id="inputBranch">
-            <label class="mr-sm-2" for="inputTestAfter">Run Test</label>
-            <input type="checkbox" class="form-control mb-2 mr-sm-2 mb-sm-0" id="inputTestAfter" name="test">
-            <button class="btn btn-primary btn-sm">Build</button>
+            <button class="btn btn-primary btn-info btn-sm mr-sm-2">New Build</button>
+{#            <label class="mr-sm-2" for="inputTestAfter">Run Test</label>#}
+{#            <input type="checkbox" class="form-control mb-2 mr-sm-2 mb-sm-0" id="inputTestAfter" name="test">#}
         </form>
     </div>
     <div class="row">
         <table class="table table-hover table-sm">
             <thead>
             <tr>
-                <th>Id</th>
+                <th>SHA</th>
                 <th>Creation (UTC)</th>
                 <th>State</th>
             </tr>
@@ -28,7 +25,7 @@
             <tbody>
             {% for build in builds %}
                 <tr>
-                    <td><a href="{{ url_for('build', job_id=build.id) }}">{{ build.id }}</a></td>
+                    <td><a href="{{ url_for('build', sha=build.id) }}">{{ build.id }}</a></td>
                     <td>{{ build.creation_time.strftime('%Y-%m-%d %H:%M') }}</td>
                     <td>{{ build.state }}</td>
                 </tr>
