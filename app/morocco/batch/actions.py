@@ -85,7 +85,7 @@ def create_build_job(commit_sha: str) -> CloudJob:
                                   output_files=[output_file])
 
     report_cmd = 'curl -X put {} --data-urlencode secret={}'.format(
-        url_for('put_build', job_id=commit_sha, _external=True, _scheme='https'), secret)
+        url_for('put_build', sha=commit_sha, _external=True, _scheme='https'), secret)
 
     report_task = TaskAddParameter(id='report',
                                    command_line=get_command_string(report_cmd),
