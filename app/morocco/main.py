@@ -6,8 +6,8 @@ import logging
 from flask import Flask, render_template, request, redirect, url_for
 from flask_login import LoginManager, login_required
 
-from morocco.batch import get_job, get_metadata
-from morocco.core import init_database, load_config
+from morocco.batch import get_metadata
+from morocco.core import init_database, load_config, get_batch_client
 from morocco.util import get_logger
 
 app = Flask(__name__)
@@ -16,7 +16,7 @@ DbUser, DbBuild, DbTestRun, DbTestCase, DbProjectSetting = models
 
 load_config(app, DbProjectSetting)
 
-(find_user, get_or_add_user, update_build, get_or_add_test_run, update_test_run, update_test_run_protected) = funcs
+(find_user, get_or_add_user, get_or_add_test_run, update_test_run, update_test_run_protected) = funcs
 
 if not app.debug:
     app.config['PREFERRED_URL_SCHEME'] = 'https'
@@ -107,7 +107,21 @@ def post_build():
 @app.route('/build/<string:sha>', methods=['POST'])
 @login_required
 def refresh_build(sha: str):
-    update_build(sha)
+    build_record = DbBuild.query.filter_by(id=sha).first()
+    if not build_record:
+        return 'Not found', 404
+
+    batch_client = get_batch_client()
+    job = batch_client.job.get(sha)
+    if not job:
+        return 'Cloud job is not found', 400
+
+    build_task = batch_client.task.get(job_id=sha, task_id='build')
+    if not build_task:
+        return 'Cloud task for the build is not found', 400
+
+    build_record.update(build_task.state.value)
+    db.session.commit()
 
     return redirect(url_for('build', sha=sha))
 
@@ -154,14 +168,22 @@ def put_build(sha: str):
 
     build_record = DbBuild.query.filter_by(id=sha).first()
     if not build_record:
-        return 'Not found',  404
+        return 'Not found', 404
 
-    job = get_job(sha)
+    batch_client = get_batch_client()
+    job = batch_client.job.get(sha)
+    if not job:
+        return 'Cloud job is not found', 400
+
     expect_secret = get_metadata(job.metadata, 'secret')
     if expect_secret != secret:
         return 'Invalid secret', 403
 
-    build_record.update(job)
+    build_task = batch_client.task.get(job_id=sha, task_id='build')
+    if not build_task:
+        return 'Cloud task for the build is not found', 400
+
+    build_record.update(build_task.state.value)
     db.session.commit()
 
     return json.dumps(build_record.get_view())

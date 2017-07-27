@@ -48,9 +48,6 @@ def init_database(app):
             self.creation_time = job.creation_time
             self.update(job)
 
-        def update(self, job: CloudJob):
-            self.state = job.state.value
-
         def get_view(self):
             return self.view_type(self.id, str(self.creation_time), self.state)._asdict()
 
@@ -165,10 +162,6 @@ def init_database(app):
 
         return user
 
-    def update_build(job_id: str) -> None:
-        get_or_add_build(job_id).update(get_job(job_id))
-        db.session.commit()
-
     def get_or_add_test_run(job_id: str) -> DbTestRun:
         logger = get_logger('db')
         logger.info('get_or_add_test_run({})'.format(job_id))
@@ -246,7 +239,7 @@ def init_database(app):
 
         return DbTestRun.query.filter_by(id=job_id).first()
 
-    funcs = (find_user, get_or_add_user, update_build, get_or_add_test_run, update_test_run, update_test_run_protected)
+    funcs = (find_user, get_or_add_user, get_or_add_test_run, update_test_run, update_test_run_protected)
 
     Migrate(app, db)
 
