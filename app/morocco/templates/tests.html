@@ -28,7 +28,7 @@
                     <td>{{ 'live' if test_run.live else '' }}</td>
                     <td>{{ test_run.failed_tests }}</td>
                     <td>{{ test_run.total_tests }}</td>
-                    <td><a href="{{ url_for('build', job_id=test_run.build_id) }}">{{ test_run.build_id or 'N/A' }}</a>
+                    <td><a href="{{ url_for('build', sha=test_run.build_id) }}">{{ test_run.build_id or 'N/A' }}</a>
                     </td>
                 </tr>
             {% endfor %}
