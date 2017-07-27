@@ -38,7 +38,6 @@ def init_database(app):
     class DbBuild(db.Model):
         id = db.Column(db.String, primary_key=True)
         creation_time = db.Column(db.DateTime)
-        batch_job = db.Column(db.String)
         state = db.Column(db.String)
         tests = db.relationship('DbTestRun', backref='build', lazy='dynamic')
 
