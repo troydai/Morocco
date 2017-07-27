@@ -46,7 +46,7 @@ def init_database(app):
         def __init__(self, job: CloudJob):
             self.id = job.id
             self.creation_time = job.creation_time
-            self.update(job)
+            self.state = job.state.value
 
         def get_view(self):
             return self.view_type(self.id, str(self.creation_time), self.state)._asdict()

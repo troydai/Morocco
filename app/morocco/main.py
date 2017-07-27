@@ -120,7 +120,7 @@ def refresh_build(sha: str):
     if not build_task:
         return 'Cloud task for the build is not found', 400
 
-    build_record.update(build_task.state.value)
+    build_record.state = build_task.state.value
     db.session.commit()
 
     return redirect(url_for('build', sha=sha))
@@ -183,7 +183,7 @@ def put_build(sha: str):
     if not build_task:
         return 'Cloud task for the build is not found', 400
 
-    build_record.update(build_task.state.value)
+    build_record.state = build_task.state.value
     db.session.commit()
 
     return json.dumps(build_record.get_view())
