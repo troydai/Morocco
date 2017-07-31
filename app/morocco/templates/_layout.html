@@ -3,65 +3,52 @@
 <head>
     <meta charset="UTF-8">
     {% block addition_meta %}{% endblock %}
-    <title>Azure CLI 2.0 Automation - {% block title %}{% endblock %}</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css"
-          integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
-    <link href="https://fonts.googleapis.com/css?family=Fira+Mono|Roboto" rel="stylesheet">
-    <script src="https://code.jquery.com/jquery-3.1.1.slim.min.js"
-            integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n"
-            crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js"
-            integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb"
-            crossorigin="anonymous"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js"
-            integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn"
-            crossorigin="anonymous"></script>
+    <title>Azure CLI 2.0 Automation</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.1/css/materialize.min.css">
 </head>
 <body>
-<nav class="navbar navbar-toggleable-md navbar-light bg-faded">
-    <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse"
-            data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
-            aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-    </button>
-    <a class="navbar-brand" href="#">Azure CLI</a>
-    <div class="collapse navbar-collapse" id="navbarSupportedContent">
-        <ul class="navbar-nav mr-auto">
-            <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('index') }}">Home</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('builds') }}">Builds</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('tests') }}">Tests</a>
-            </li>
-        </ul>
+<nav class="cyan darken-4">
+    <a href='#' class="brand-logo center">{{ title }}</a>
+    <ul class="left">
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('index') }}">Home</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('builds') }}">Builds</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('tests') }}">Tests</a>
+        </li>
+    </ul>
+    <ul class="right">
         {% if current_user.is_authenticated %}
-            <form class="form-inline my-2 my-lg-0" action="{{ url_for('logout') }}" method="post">
-                <label class="mr-sm-2">{{ current_user.id }}</label>
-                <button class="btn btn-secondary btn-sm" type="submit">Logout</button>
-            </form>
+            <li>
+                <form action="{{ url_for('logout') }}" method="post">
+                    {{ current_user.id }}
+                    <input class="btn btn-flat white-text" type="submit" value="Logout">
+                </form>
+            </li>
         {% else %}
-            <form class="form-inline my-2 my-lg-0"
-                  action="{{ config['auth_authorization_endpoint'] }}"
-                  method="get">
-                <input type="hidden" name="tenant" value="{{ config['MOROCCO_AUTH_TENANT'] }}">
-                <input type="hidden" name="client_id" value="{{ config['MOROCCO_AUTH_CLIENT_ID'] }}">
-                <input type="hidden" name="response_type" value="id_token">
-                <input type="hidden" name="scope" value="openid">
-                <input type="hidden" name="nonce" value="a nonce, should be randomized">
-                <input type="hidden" name="redirect_uri"
-                       value="{{ url_for('signin_callback', _external=True, _scheme='http' if config['is_local_server'] else 'https') }}">
-                <input type="hidden" name="response_mode" value="form_post">
-                <input type="hidden" name="state" value="">
-                <button class="btn btn-primary btn-sm" type="submit">Login</button>
-            </form>
+            <li>
+                <form class="form-inline my-2 my-lg-0" action="{{ config['auth_authorization_endpoint'] }}">
+                    <input type="hidden" name="tenant" value="{{ config['MOROCCO_AUTH_TENANT'] }}">
+                    <input type="hidden" name="client_id" value="{{ config['MOROCCO_AUTH_CLIENT_ID'] }}">
+                    <input type="hidden" name="response_type" value="id_token">
+                    <input type="hidden" name="scope" value="openid">
+                    <input type="hidden" name="nonce" value="a nonce, should be randomized">
+                    <input type="hidden" name="redirect_uri"
+                           value="{{ url_for('signin_callback', _external=True, _scheme='http' if config['is_local_server'] else 'https') }}">
+                    <input type="hidden" name="response_mode" value="form_post">
+                    <input type="hidden" name="state" value="">
+                    <input class="btn teal darken-3 " type="submit" value="Login">
+                </form>
+            </li>
         {% endif %}
-    </div>
+    </ul>
 </nav>
-<div class="container">
-    {% block body %}{% endblock %}
-</div>
+{% block body %}{% endblock %}
+<script type="text/javascript" src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.1/js/materialize.min.js"></script>
 </body>
 </html>

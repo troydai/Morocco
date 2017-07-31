@@ -1,59 +1,70 @@
 {% extends '_layout.html' %}
-{% block title %}Build details - {{ build.id }}{% endblock %}
 {% block body %}
-    <div class="row mt-5">
-        <div class="col">
-            <h1 class="display-2">Build Details</h1>
+    <div class="row">
+        <div class="col s12">
+            <div class="card hoverable">
+                <div class="card-content brown lighten-5">
+                    <p class="flow-text">This snapshot was created on <i class="yellow lighten-4">
+                        {{ build.creation_time.strftime('%Y-%m-%d %H:%M UTC') }}</i> based
+                        on the commit <a href="https://github.com/Azure/azure-cli/commit/{{ build.id }}"><i
+                                class="blue-text yellow lighten-4">{{ build.id[0:6] }}</i></a>. The building status is
+                        <i class="yellow lighten-4">{{ build.state }}</i>. </p>
+                </div>
+                <div class="card-action brown lighten-4">
+                    <ul>
+                        <li class="waves-effect waves-light">
+                            <form action="{{ url_for('refresh_build', sha=build.id) }}" method="post">
+                                <input type="submit" value="Refresh" class="btn blue-grey lighten-1">
+                            </form>
+                        </li>
+                        <li class="waves-effect waves-light">
+                            <form action="{{ url_for('post_test') }}" method="post">
+                                <input type="hidden" name="build_id" value="{{ build.id }}">
+                                <input type="hidden" name="live" value="false">
+                                <input type="submit" value="Run Test" class="btn teal lighten-1">
+                            </form>
+                        </li>
+                        <li class="waves-effect waves-light">
+                            <form action="{{ url_for('post_test') }}" method="post">
+                                <input type="hidden" name="build_id" value="{{ build.id }}">
+                                <input type="hidden" name="live" value="true">
+                                <input type="submit" value="Run Live Test" class="btn cyan lighten-1">
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            </div>
         </div>
-        <div class="col">
-            <dl class="row">
-                <dt class="col-sm-2">ID</dt>
-                <dd class="col-sm-10">{{ build.id }}</dd>
-                <dt class="col-sm-2">Creation</dt>
-                <dd class="col-sm-10">{{ build.creation_time.strftime('%Y-%m-%d %H:%M') }}</dd>
-                <dt class="col-sm-2">State</dt>
-                <dd class="col-sm-10">{{ build.state }}</dd>
-                <dt class="col-sm-2"></dt>
-            </dl>
-        </div>
-    </div>
-    <div class="row mb-sm-2">
-        <form class="mr-sm-2" action="{{ url_for('refresh_build', sha=build.id) }}" method="post">
-            <button type="submit" class="btn btn-primary">Refresh</button>
-        </form>
-        <form class="mr-sm-2" action="{{ url_for('post_test') }}" method="post">
-            <input type="hidden" name="build_id" value="{{ build.id }}">
-            <input type="hidden" name="live" value="false">
-            <button type="submit" class="btn btn-info">Run Test</button>
-        </form>
-        <form class="mr-sm-2" action="{{ url_for('post_test') }}" method="post">
-            <input type="hidden" name="build_id" value="{{ build.id }}">
-            <input type="hidden" name="live" value="true">
-            <button type="submit" class="btn btn-warning">Run Live Test</button>
-        </form>
     </div>
     <div class="row">
-        <table class="table table-sm table-hover">
-            <thead>
-            <tr>
-                <th>Id</th>
-                <th>Create Time (UTC)</th>
-                <th>Live</th>
-                <th>Failed</th>
-                <th>Total</th>
-            </tr>
-            </thead>
-            <tbody>
-            {% for test_run in build.tests %}
-                <tr>
-                    <td><a href="{{ url_for('test', job_id=test_run.id) }}">{{ test_run.id }}</a></td>
-                    <td>{{ test_run.creation_time.strftime('%Y-%m-%d %H:%M') }}</td>
-                    <td>{{ test_run.live }}</td>
-                    <td>{{ test_run.failed_tests }}</td>
-                    <td>{{ test_run.total_tests }}</td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
+        <div class="col s12">
+            <div class="card hoverable brown lighten-5">
+                <div class="card-content">
+                    <span class="card-title">Test Runs</span>
+                    <table class="highlight">
+                        <thead>
+                        <tr>
+                            <th>Id</th>
+                            <th>Create Time (UTC)</th>
+                            <th>Live</th>
+                            <th>Failed</th>
+                            <th>Total</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for test_run in build.tests %}
+                            <tr>
+                                <td><a href="{{ url_for('test', job_id=test_run.id) }}">{{ test_run.id }}</a></td>
+                                <td>{{ test_run.creation_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>{{ test_run.live }}</td>
+                                <td>{{ test_run.failed_tests }}</td>
+                                <td>{{ test_run.total_tests }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 {% endblock %}

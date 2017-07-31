@@ -1,36 +1,53 @@
 {% extends "_layout.html" %}
-{% block title %}Builds{% endblock %}
 {% block body %}
-    <div class="row mt-5">
-        <div class="col">
-            <h1 class="display-2">Builds List</h1>
+    <div class="row">
+        <div class="col s12">
+            <div class="card hoverable">
+                <div class="card-content brown lighten-5">
+                    <p class="flow-text">You can find the snapshots for the <i class="yellow lighten-4"><a
+                            href="https://github.com/azure/azure-cli" class="black-text">Azure CLI repository</a></i>
+                        for each git commits here. The snapshots are associated with <i class="yellow lighten-4"><a
+                                href="{{ url_for('tests') }}" class="black-text">test runs</a></i>. If the latest
+                        commits doesn't have a corresponding snapshot here, you can trigger a new one.
+                    </p>
+                </div>
+                <div class="card-action brown lighten-4">
+                    <ul>
+                        <li>
+                            <form action="{{ url_for('post_build') }}" method="post">
+                                <button class="btn blue-grey lighten-1">New Build</button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>
     <div class="row">
-        <form class="form-inline mt-sm-2 mb-sm-2 ml-sm-2" action="{{ url_for('post_build') }}" method="post">
-            <button class="btn btn-primary btn-info btn-sm mr-sm-2">New Build</button>
-{#            <label class="mr-sm-2" for="inputTestAfter">Run Test</label>#}
-{#            <input type="checkbox" class="form-control mb-2 mr-sm-2 mb-sm-0" id="inputTestAfter" name="test">#}
-        </form>
-    </div>
-    <div class="row">
-        <table class="table table-hover table-sm">
-            <thead>
-            <tr>
-                <th>SHA</th>
-                <th>Creation (UTC)</th>
-                <th>State</th>
-            </tr>
-            </thead>
-            <tbody>
-            {% for build in builds %}
-                <tr>
-                    <td><a href="{{ url_for('build', sha=build.id) }}">{{ build.id }}</a></td>
-                    <td>{{ build.creation_time.strftime('%Y-%m-%d %H:%M') }}</td>
-                    <td>{{ build.state }}</td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
+        <div class="col s12">
+            <div class="card hoverable brown lighten-5">
+                <div class="card-content">
+                    <span class="card-title">Snapshots</span>
+                    <table class="highlight">
+                        <thead>
+                        <tr>
+                            <th>SHA</th>
+                            <th>Creation (UTC)</th>
+                            <th>State</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for build in builds %}
+                            <tr>
+                                <td><a href="{{ url_for('build', sha=build.id) }}">{{ build.id }}</a></td>
+                                <td>{{ build.creation_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>{{ build.state }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 {% endblock %}

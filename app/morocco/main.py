@@ -50,7 +50,7 @@ def redirect_https():
 @app.route('/', methods=['GET'])
 def index():
     byline = 'Morocco - An automation service runs on Azure Batch.\n'
-    return render_template('index.html', byline=byline)
+    return render_template('index.html', byline=byline, title='Azure CLI')
 
 
 @app.route('/login', methods=['GET'])
@@ -76,12 +76,14 @@ def logout():
 
 @app.route('/builds', methods=['GET'])
 def builds():
-    return render_template('builds.html', builds=DbBuild.query.order_by(DbBuild.creation_time.desc()).all())
+    return render_template('builds.html', builds=DbBuild.query.order_by(DbBuild.creation_time.desc()).all(),
+                           title='Builds')
 
 
 @app.route('/build/<string:sha>', methods=['GET'])
 def build(sha: str):
-    return render_template('build.html', build=DbBuild.query.filter_by(id=sha).first())
+    build_record = DbBuild.query.filter_by(id=sha).first()
+    return render_template('build.html', build=build_record, title='Build ' + str(build_record.id)[0:6])
 
 
 @app.route('/build', methods=['POST'])
@@ -128,12 +130,14 @@ def refresh_build(sha: str):
 
 @app.route('/tests', methods=['GET'])
 def tests():
-    return render_template('tests.html', test_runs=DbTestRun.query.order_by(DbTestRun.creation_time.desc()).all())
+    return render_template('tests.html', test_runs=DbTestRun.query.order_by(DbTestRun.creation_time.desc()).all(),
+                           title='Test Runs')
 
 
 @app.route('/test/<string:job_id>', methods=['GET'])
 def test(job_id: str):
-    return render_template('test.html', test_run=DbTestRun.query.filter_by(id=job_id).first())
+    return render_template('test.html', test_run=DbTestRun.query.filter_by(id=job_id).first(),
+                           title='Test Run')
 
 
 @app.route('/test', methods=['POST'])
