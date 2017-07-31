@@ -89,21 +89,7 @@ def build(sha: str):
 @app.route('/build', methods=['POST'])
 @login_required
 def post_build():
-    import requests
-    from morocco.batch import create_build_job
-    from morocco.core import get_source_control_info
-
-    git_url = get_source_control_info().url
-    git_url = git_url.replace('https://github.com', 'https://api.github.com/repos')[:-4] + '/commits'
-    response = requests.get(git_url)
-    commit_sha = response.json()[0]['sha']
-
-    build_record = DbBuild.query.filter_by(id=commit_sha).one_or_none()
-    if not build_record:
-        db.session.add(DbBuild(create_build_job(commit_sha)))
-        db.session.commit()
-
-    return redirect(url_for('build', sha=commit_sha))
+    return put_build(sha='<latest>')
 
 
 @app.route('/build/<string:sha>', methods=['POST'])
@@ -164,8 +150,38 @@ def get_admin():
     return render_template('admin.html')
 
 
-@app.route('/api/build/<string:sha>', methods=['PUT'])
+@app.route('/build/<string:sha>', methods=['PUT'])
+@login_required
 def put_build(sha: str):
+    import requests
+    from morocco.core import get_source_control_info
+    from morocco.batch import create_build_job
+
+    git_url = get_source_control_info().url
+    git_url = git_url.replace('https://github.com', 'https://api.github.com/repos')[:-4] + '/commits'
+    if sha == '<latest>':
+        response = requests.get(git_url)
+        sha = response.json()[0]['sha']
+    else:
+        if not requests.get('{}/{}'.format(git_url, sha)).status_code == 200:
+            return 'Commit {} not found'.format(sha), 404
+
+    job = get_batch_client().job.get(sha) or create_build_job(sha)
+
+    build_record = DbBuild.query.filter_by(id=sha).first()
+    if build_record:
+        build_record.state = job.state.value
+    else:
+        build_record = DbBuild(job)
+        db.session.add(build_record)
+
+    db.session.commit()
+
+    return redirect(url_for('build', sha=sha))
+
+
+@app.route('/api/build/<string:sha>', methods=['PUT'])
+def api_put_build(sha: str):
     secret = request.form.get('secret')
     if not secret:
         return 'Missing secret', 403
