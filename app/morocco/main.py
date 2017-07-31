@@ -83,13 +83,31 @@ def builds():
 @app.route('/build/<string:sha>', methods=['GET'])
 def build(sha: str):
     build_record = DbBuild.query.filter_by(id=sha).first()
-    return render_template('build.html', build=build_record, title='Build ' + str(build_record.id)[0:6])
+    return render_template('build.html', build=build_record, title='Snapshot')
 
 
 @app.route('/build', methods=['POST'])
 @login_required
 def post_build():
     return put_build(sha='<latest>')
+
+
+@app.route('/delete_build', methods=['POST'])
+@login_required
+def delete_build():
+    commit_sha = request.form.get('commit_sha')
+    if not commit_sha:
+        return "Missing commit sha for identifying build", 400
+
+    build_to_delete = DbBuild.query.filter_by(id=commit_sha).one_or_none()
+    if build_to_delete:
+        for t in build_to_delete.tests:
+            db.session.delete(t)
+        db.session.delete(build_to_delete)
+        db.session.commit()
+        return redirect(url_for('builds'))
+    else:
+        return "Build {} not found".format(commit_sha), 404
 
 
 @app.route('/build/<string:sha>', methods=['POST'])
@@ -146,14 +164,15 @@ def refresh_test(job_id: str):
 
 @app.route('/delete_test_run', methods=['POST'])
 @login_required
-def delete_test():
+def delete_test_run():
     test_run_id = request.form.get('test_run_id')
     if not test_run_id:
         return "Missing test run ID", 400
 
     test_run = DbTestRun.query.filter_by(id=test_run_id).one_or_none()
     if test_run:
-        db.session.delete(test_run)
+        for case in test_run.test_cases:
+            db.session.delete(case)
         db.session.commit()
         return redirect(url_for('tests'))
     else:

@@ -28,7 +28,6 @@
                             <th>Failed</th>
                             <th>Total</th>
                             <th>Build</th>
-                            <th>Actions</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -40,17 +39,8 @@
                                 <td>{{ 'live' if test_run.live else '' }}</td>
                                 <td>{{ test_run.failed_tests }}</td>
                                 <td>{{ test_run.total_tests }}</td>
-                                <td>
-                                    <a class="truncate"
-                                       href="{{ url_for('build', sha=test_run.build_id) }}">{{ test_run.build_id or 'N/A' }}</a>
-                                </td>
-                                <td>
-                                    <form action="{{ url_for('delete_test') }}" method="post">
-                                        <input type="hidden" name="test_run_id" value="{{ test_run.id }}">
-                                        <button type="submit" class="btn btn-flat" name="action">
-                                            <i class="material-icons">delete</i>
-                                        </button>
-                                    </form>
+                                <td><a class="truncate"
+                                       href="{{ url_for('build', sha=(test_run.build_id or '')) }}">{{ test_run.build_id or 'N/A' }}</a>
                                 </td>
                             </tr>
                         {% endfor %}

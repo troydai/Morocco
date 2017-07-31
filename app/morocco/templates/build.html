@@ -1,40 +1,63 @@
 {% extends '_layout.html' %}
 {% block body %}
-    <div class="row">
-        <div class="col s12">
-            <div class="card hoverable">
-                <div class="card-content brown lighten-5">
-                    <p class="flow-text">This snapshot was created on <i class="yellow lighten-4">
-                        {{ build.creation_time.strftime('%Y-%m-%d %H:%M UTC') }}</i> based
-                        on the commit <a href="https://github.com/Azure/azure-cli/commit/{{ build.id }}"><i
-                                class="blue-text yellow lighten-4">{{ build.id[0:6] }}</i></a>. The building status is
-                        <i class="yellow lighten-4">{{ build.state }}</i>. </p>
-                </div>
-                <div class="card-action brown lighten-4">
-                    <ul>
-                        <li class="waves-effect waves-light">
-                            <form action="{{ url_for('refresh_build', sha=build.id) }}" method="post">
-                                <input type="submit" value="Refresh" class="btn blue-grey lighten-1">
-                            </form>
-                        </li>
-                        <li class="waves-effect waves-light">
-                            <form action="{{ url_for('post_test') }}" method="post">
-                                <input type="hidden" name="build_id" value="{{ build.id }}">
-                                <input type="hidden" name="live" value="false">
-                                <input type="submit" value="Run Test" class="btn teal lighten-1">
-                            </form>
-                        </li>
-                        <li class="waves-effect waves-light">
-                            <form action="{{ url_for('post_test') }}" method="post">
-                                <input type="hidden" name="build_id" value="{{ build.id }}">
-                                <input type="hidden" name="live" value="true">
-                                <input type="submit" value="Run Live Test" class="btn cyan lighten-1">
-                            </form>
-                        </li>
-                    </ul>
-                </div>
-            </div>
+    {% if current_user.is_authenticated %}
+        <div class="fixed-action-btn" style="position: absolute">
+            <a class="btn-floating btn-large light-blue darken-4">
+                <i class="large material-icons">build</i>
+            </a>
+            <ul>
+                <li>
+                    <form action="{{ url_for('refresh_build', sha=build.id) }}" method="post">
+                        <button type="submit" value="Refresh" class="btn btn-floating btn-large light-blue">
+                            <i class="material-icons">refresh</i>
+                        </button>
+                    </form>
+                </li>
+                <li>
+                    <form action="{{ url_for('post_test') }}" method="post">
+                        <input type="hidden" name="build_id" value="{{ build.id }}">
+                        <input type="hidden" name="live" value="false">
+                        <input type="submit" value="Test" class="btn btn-floating btn-large light-blue darken-1">
+                    </form>
+                </li>
+                <li>
+                    <form action="{{ url_for('post_test') }}" method="post">
+                        <input type="hidden" name="build_id" value="{{ build.id }}">
+                        <input type="hidden" name="live" value="true">
+                        <input type="submit" value="Live" class="btn btn-floating btn-large light-blue darken-2">
+                    </form>
+                </li>
+                <li>
+                    <form action="{{ url_for('delete_build') }}" method="post">
+                        <input type="hidden" name="commit_sha" value="{{ build.id }}">
+                        <button type="submit" value="Delete" class="btn btn-floating btn-large light-blue darken-3">
+                            <i class="material-icons">delete</i>
+                        </button>
+                    </form>
+                </li>
+            </ul>
         </div>
+    {% endif %}
+    <div class="row">
+        <div class="container">
+
+            {#        <div class="col s12">#}
+            {#            <div class="card hoverable">#}
+            {#                <div class="card-content brown lighten-5">#}
+            <p class="flow-text">This snapshot was created on <strong class="yellow lighten-4">
+                {{ build.creation_time.strftime('%Y-%m-%d %H:%M UTC') }}</strong> based
+                on the commit <a href="https://github.com/Azure/azure-cli/commit/{{ build.id }}"><strong
+                        class="blue-text yellow lighten-4">{{ build.id[0:6] }}</strong></a>. The building status is
+                <strong class="yellow lighten-4">{{ build.state }}</strong>. </p>
+        </div>
+        {#                </div>#}
+        {#                <div class="card-action brown lighten-4">#}
+        {#                    <ul>#}
+
+        {#                    </ul>#}
+        {#                </div>#}
+        {#            </div>#}
+        {#        </div>#}
     </div>
     <div class="row">
         <div class="col s12">
