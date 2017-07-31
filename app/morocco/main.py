@@ -144,6 +144,22 @@ def refresh_test(job_id: str):
     return redirect(url_for('test', job_id=job_id))
 
 
+@app.route('/delete_test_run', methods=['POST'])
+@login_required
+def delete_test():
+    test_run_id = request.form.get('test_run_id')
+    if not test_run_id:
+        return "Missing test run ID", 400
+
+    test_run = DbTestRun.query.filter_by(id=test_run_id).one_or_none()
+    if test_run:
+        db.session.delete(test_run)
+        db.session.commit()
+        return redirect(url_for('tests'))
+    else:
+        return "Test run {} not found".format(test_run_id), 404
+
+
 @app.route('/admin', methods=['GET'])
 @login_required
 def get_admin():
@@ -154,6 +170,7 @@ def get_admin():
 @login_required
 def put_build(sha: str):
     import requests
+    from azure.batch.models import BatchErrorException
     from morocco.core import get_source_control_info
     from morocco.batch import create_build_job
 
@@ -166,7 +183,10 @@ def put_build(sha: str):
         if not requests.get('{}/{}'.format(git_url, sha)).status_code == 200:
             return 'Commit {} not found'.format(sha), 404
 
-    job = get_batch_client().job.get(sha) or create_build_job(sha)
+    try:
+        job = get_batch_client().job.get(sha)
+    except BatchErrorException:
+        job = create_build_job(sha)
 
     build_record = DbBuild.query.filter_by(id=sha).first()
     if build_record:

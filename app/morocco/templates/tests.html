@@ -18,7 +18,7 @@
         <div class="col s12">
             <div class="card hoverable">
                 <div class="card-content brown lighten-5">
-                    <table class="table table-hover table-sm">
+                    <table class="highlight">
                         <thead>
                         <tr>
                             <th>Id</th>
@@ -28,6 +28,7 @@
                             <th>Failed</th>
                             <th>Total</th>
                             <th>Build</th>
+                            <th>Actions</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -42,6 +43,14 @@
                                 <td>
                                     <a class="truncate"
                                        href="{{ url_for('build', sha=test_run.build_id) }}">{{ test_run.build_id or 'N/A' }}</a>
+                                </td>
+                                <td>
+                                    <form action="{{ url_for('delete_test') }}" method="post">
+                                        <input type="hidden" name="test_run_id" value="{{ test_run.id }}">
+                                        <button type="submit" class="btn btn-flat" name="action">
+                                            <i class="material-icons">delete</i>
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         {% endfor %}

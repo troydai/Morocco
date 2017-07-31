@@ -4,13 +4,12 @@
         <div class="col s12">
             <div class="card hoverable">
                 <div class="card-content brown lighten-5">
-                    <p class="flow-text">The test run <i class="yellow lighten-4">{{ test_run.id }}</i> is based on
-                        snapshot <i class="yellow lighten-4"><a
-                                href="{{ url_for('build', sha=test_run.build_id) }}">{{ test_run.build_id or 'N/A' }}</a></i>.
-                        It was created on <i
-                                class="yellow lighten-4">{{ test_run.creation_time.strftime('%Y-%m-%d %H:%M UTC') }}</i>
-                        and it is <i class="yellow lighten-4">{{ test_run.state }}</i>. The pass rate is
-                        <i class="purple lighten-4">{{ test_run.get_pass_percentage() }}%</i>.</p>
+                    <p class="flow-text">
+                        The <i class="yellow lighten-4">{{ 'live' if test_run.live or '' }}</i> test run <i class="yellow lighten-4">{{ test_run.id }}</i> is based on
+                        snapshot <i class="yellow lighten-4"><a href="{{ url_for('build', sha=test_run.build_id) }}">{{ test_run.build_id or 'N/A' }}</a></i>.
+                        It was created on <i class="yellow lighten-4">{{ test_run.creation_time.strftime('%Y-%m-%d %H:%M UTC') }}</i>
+                        and it is now <i class="yellow lighten-4">{{ test_run.state }}</i>.
+                        The pass rate is <i class="purple lighten-4">{{ test_run.get_pass_percentage() }}%</i>.</p>
                 </div>
                 <div class="card-action brown lighten-4">
                     <ul>

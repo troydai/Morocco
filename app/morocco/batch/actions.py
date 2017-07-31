@@ -66,17 +66,20 @@ def create_build_job(commit_sha: str) -> CloudJob:
                                          uses_task_dependencies=True))
     logger.info('Job %s is created.', commit_sha)
 
+    output_file_name = 'azure-cli-{}.tar'.format(commit_sha)
     build_commands = [
         'git clone --depth=50 {} {}'.format(source_control_info.url, remote_source_dir),
         'pushd {}'.format(remote_source_dir),
         'git checkout -qf {}'.format(commit_sha),
-        './scripts/batch/build_all.sh'
+        './scripts/batch/build_all.sh',
+        'tar cvzf {} ./artifacts'.format(output_file_name)
     ]
 
     build_container_url = _get_build_blob_container_url()
 
-    output_file = OutputFile('{}/artifacts/**/*.*'.format(remote_source_dir),
-                             OutputFileDestination(OutputFileBlobContainerDestination(build_container_url, commit_sha)),
+    output_file = OutputFile('{}/{}'.format(remote_source_dir, output_file_name),
+                             OutputFileDestination(OutputFileBlobContainerDestination(build_container_url,
+                                                                                      output_file_name)),
                              OutputFileUploadOptions(OutputFileUploadCondition.task_success))
 
     build_task = TaskAddParameter(id='build',
@@ -107,6 +110,7 @@ def create_test_job(build_id: str, run_live: bool = False) -> str:  # pylint: di
     storage_client = get_blob_storage_client()
     automation_actor = get_automation_actor_info()
     job_id = 'test-{}'.format(datetime.utcnow().strftime('%Y%m%d-%H%M%S'))
+    output_file_name = 'azure-cli-{}.tar'.format(build_id)
 
     def _list_build_resource_files() -> Iterable[ResourceFile]:
         """ List the files belongs to the target build in the build blob container """
@@ -119,9 +123,8 @@ def create_test_job(build_id: str, run_live: bool = False) -> str:  # pylint: di
                                                                         expiry=(datetime.utcnow() + timedelta(days=1)))
         logger.info('Container %s is found and read only SAS token is generated.', 'builds')
 
-        build_blobs = storage_client.list_blobs(container_name='builds', prefix=build_id)
-        return [ResourceFile(blob_source=storage_client.make_blob_url('builds', blob.name, 'https', sas),
-                             file_path=blob.name[len(build_id) + 1:]) for blob in build_blobs]
+        return [ResourceFile(blob_source=storage_client.make_blob_url('builds', output_file_name, 'https', sas),
+                             file_path=output_file_name)]
 
     def _create_output_container_folder() -> str:
         """ Create output storage container """
@@ -143,7 +146,9 @@ def create_test_job(build_id: str, run_live: bool = False) -> str:  # pylint: di
         logger.error('The build %s is not found in the builds container', build_id)
         raise ValueError('Fail to find build {}'.format(build_id))
 
-    prep_task = JobPreparationTask(get_command_string('./app/install.sh'),
+    prep_task = JobPreparationTask(get_command_string('tar xvf {}'.format(output_file_name),
+                                                      'mv ./artifacts/* ./',
+                                                      './app/install.sh'),
                                    resource_files=resource_files,
                                    wait_for_success=True)
 
