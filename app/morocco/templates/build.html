@@ -48,41 +48,38 @@
                     {{ build.commit_date.strftime('%Y-%m-%d %H:%M UTC') }}.
                 </strong>
                 The building status is <strong class="yellow lighten-4">{{ build.state }}</strong>.
-            {% if build.build_download_url %}
-                The build can be downloaded <a href="{{ build.build_download_url }}"><strong>here</strong></a>
-            {% endif %}
+                {% if build.build_download_url %}
+                    The build can be downloaded <a href="{{ build.build_download_url }}"><strong>here</strong></a>
+                {% endif %}
             </p>
         </div>
     </div>
     <div class="row">
-        <div class="col s12">
-            <div class="card hoverable brown lighten-5">
-                <div class="card-content">
-                    <span class="card-title">Test Runs</span>
-                    <table class="highlight">
-                        <thead>
-                        <tr>
-                            <th>Id</th>
-                            <th>Create Time (UTC)</th>
-                            <th>Live</th>
-                            <th>Failed</th>
-                            <th>Total</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for test_run in build.tests %}
-                            <tr>
-                                <td><a href="{{ url_for('test', job_id=test_run.id) }}">{{ test_run.id }}</a></td>
-                                <td>{{ test_run.creation_time.strftime('%Y-%m-%d %H:%M') }}</td>
-                                <td>{{ test_run.live }}</td>
-                                <td>{{ test_run.failed_tests }}</td>
-                                <td>{{ test_run.total_tests }}</td>
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        <div class="container">
+            <table class="highlight">
+                <thead>
+                <tr>
+                    <th>Id</th>
+                    <th>Create Time (UTC)</th>
+                    <th>Live</th>
+                    <th>State</th>
+                    <th>Failed</th>
+                    <th>Total</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for test_run in build.tests %}
+                    <tr>
+                        <td><a href="{{ url_for('test', job_id=test_run.id) }}">{{ test_run.id }}</a></td>
+                        <td>{{ test_run.creation_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ test_run.live }}</td>
+                        <td>{{ test_run.state }}</td>
+                        <td>{{ test_run.failed_tests }}</td>
+                        <td>{{ test_run.total_tests }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 {% endblock %}

@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     {% block addition_meta %}{% endblock %}
     <title>Azure CLI 2.0 Automation</title>
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.1/css/materialize.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
 </head>
 <body>
-<nav class="blue z-depth-3">
+<nav class="{% if current_user.is_admin() %}purple{% else %}blue{% endif %} z-depth-3">
     <a href='#' class="brand-logo center">{{ title }}</a>
     <ul class="left">
         <li class="nav-item">

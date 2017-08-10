@@ -28,7 +28,7 @@
     </div>
     <div class="row">
         <div class="container">
-            <table class="highlight" style="font-size: small">
+            <table class="highlight">
                 <thead>
                 <tr>
                     <th>SHA</th>
@@ -42,7 +42,8 @@
                 <tbody>
                 {% for build in builds %}
                     <tr>
-                        <td style="width: 10%"><code><a href="{{ url_for('build', sha=build.id) }}">{{ build.id[:7] }}</a></code></td>
+                        <td style="width: 10%"><code><a
+                                href="{{ url_for('build', sha=build.id) }}">{{ build.id[:7] }}</a></code></td>
                         <td style="width: 10%">{{ build.commit_author }}</td>
                         <td style="width: 55%">{{ build.commit_message.strip().split('\n')[0] if build.commit_message else '' }}</td>
                         <td style="width: 10%">{{ build.commit_date.strftime('%Y-%m-%d') if build.commit_date else 'N/A' }}</td>

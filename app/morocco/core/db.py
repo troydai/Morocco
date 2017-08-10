@@ -29,18 +29,22 @@ def init_database(app):
 
     class DbUser(db.Model, UserMixin):
         id = db.Column(db.String, primary_key=True)
+        role = db.Column(db.String)
 
         def __init__(self, user_id: str):
             self.id = user_id
 
         def __repr__(self):
-            return '<User {}>'.format(self.id)
+            return '<User {}: {}>'.format(self.id, self.role or 'N/A')
+
+        def is_admin(self) -> bool:
+            return self.is_authenticated and self.role == 'admin'
 
     class DbBuild(db.Model):
         id = db.Column(db.String, primary_key=True)
         creation_time = db.Column(db.DateTime)
         state = db.Column(db.String)
-        tests = db.relationship('DbTestRun', backref='build', lazy='dynamic')
+        tests = db.relationship('DbTestRun', backref='build', lazy='dynamic', cascade='delete')
 
         commit_author = db.Column(db.String)
         commit_message = db.Column(db.String)
@@ -79,7 +83,7 @@ def init_database(app):
         state = db.Column(db.String)
 
         build_id = db.Column(db.String, db.ForeignKey('db_build.id'))
-        test_cases = db.relationship('DbTestCase', backref='test_run', lazy='dynamic')
+        test_cases = db.relationship('DbTestCase', backref='test_run', lazy='dynamic', cascade='delete')
 
         view_type = namedtuple('TestRunView', ['id', 'creation_time', 'state', 'total_tests', 'failed_tests'])
 

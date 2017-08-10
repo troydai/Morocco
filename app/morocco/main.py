@@ -167,8 +167,7 @@ def delete_test_run():
 
     test_run = DbTestRun.query.filter_by(id=test_run_id).one_or_none()
     if test_run:
-        for case in test_run.test_cases:
-            db.session.delete(case)
+        db.session.delete(test_run)
         db.session.commit()
         return redirect(url_for('tests'))
     else:

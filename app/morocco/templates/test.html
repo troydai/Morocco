@@ -40,31 +40,27 @@
         </div>
     </div>
     <div class="row">
-        <div class="col s12">
-            <div class="card hoverable">
-                <div class="card-content brown lighten-5">
-                    <table class="highlight">
-                        <thead>
-                        <tr>
-                            <th>Module</th>
-                            <th>Failed Test</th>
-                            <th>Duration (s)</th>
-                            <th>Log</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for test_case in test_run.test_cases if not test_case.passed %}
-                            <tr>
-                                <td>{{ test_case.module }}</td>
-                                <td>{{ test_case.test_method }}</td>
-                                <td>{{ test_case.test_duration }}</td>
-                                <td><a href="#{{ test_case.test_full_name }}">Link</a></td>
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        <div class="container">
+            <table class="highlight">
+                <thead>
+                <tr>
+                    <th>Module</th>
+                    <th>Failed Test</th>
+                    <th>Duration (s)</th>
+                    <th>Log</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for test_case in test_run.test_cases if not test_case.passed %}
+                    <tr>
+                        <td>{{ test_case.module }}</td>
+                        <td>{{ test_case.test_method }}</td>
+                        <td>{{ test_case.test_duration }}</td>
+                        <td><a href="#{{ test_case.test_full_name }}">Link</a></td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
     {% for test_case in test_run.test_cases if not test_case.passed %}
