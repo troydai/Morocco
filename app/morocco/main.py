@@ -12,7 +12,7 @@ from morocco.util import get_logger
 
 app = Flask(__name__)
 db, models, funcs = init_database(app)
-DbUser, DbBuild, DbTestRun, DbTestCase, DbProjectSetting = models
+DbUser, DbBuild, DbTestRun, DbTestCase, DbProjectSetting, DbAccessKey, DbWebhookEvent = models
 
 load_config(app, DbProjectSetting)
 
@@ -177,7 +177,67 @@ def delete_test_run():
 @app.route('/admin', methods=['GET'])
 @login_required
 def get_admin():
-    return render_template('admin.html')
+    from flask_login import current_user
+    if not current_user.is_admin():
+        return 'Check your privilege, Bro.', 403
+
+    keys = DbAccessKey.query.all()
+
+    return render_template('admin.html', title='Admin', keys=keys)
+
+
+@app.route('/admin/access_key', methods=['POST'])
+@login_required
+def post_access_key():
+    from datetime import datetime
+    from flask_login import current_user
+    if not current_user.is_admin():
+        return 'Check your privilege, Bro.', 403
+
+    action = request.form.get('action')
+    if action == 'new':
+        remark = request.form.get('remark') or 'created on {}'.format(
+            datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC'))
+        db.session.add(DbAccessKey(request.form['name'], remark))
+        db.session.commit()
+    elif action == 'delete':
+        key = DbAccessKey.query.filter_by(name=request.form['name']).one_or_none()
+        db.session.delete(key)
+        db.session.commit()
+
+    return redirect(url_for('get_admin'))
+
+
+@app.route('/api/build', methods=['POST'])
+def post_api_build():
+    client_id = request.args.get('client_id')
+    if not client_id:
+        return 'Forbidden', 401
+
+    key = DbAccessKey.query.filter_by(name=client_id).one_or_none()
+    if not key:
+        # unknown client
+        return 'Forbidden', 401
+
+    if request.headers.get('X-GitHub-Event') == 'push':
+        # to validate it in the future
+        sig = request.headers.get('X-Hub-Signature')
+        event = DbWebhookEvent(source='github', content=request.data.decode('utf-8'), signature=sig)
+        db.session.add(event)
+        db.session.commit()
+
+        if sig:
+            import hmac
+            sig = sig.split('=')[1]
+            mac = hmac.new(key.key1.encode(), msg=request.data, digestmod='sha1')
+            if hmac.compare_digest(str(mac.hexdigest()), str(sig)):
+                return 'OK', 200
+            else:
+                return 'Invalid {}'.format(mac.hexdigest()), 403
+        else:
+            return 'OK', 200
+
+    return 'Not found', 404
 
 
 @app.route('/api/build/<string:sha>', methods=['PUT'])

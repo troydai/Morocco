@@ -164,6 +164,34 @@ def init_database(app):
         def __repr__(self):
             return '<ProjectSetting(name={},value={})>'.format(self.name, self.value)
 
+    class DbAccessKey(db.Model):
+        name = db.Column(db.String, primary_key=True)
+        key1 = db.Column(db.String)
+        key2 = db.Column(db.String)
+        remark = db.Column(db.String)
+
+        def __init__(self, name: str, remark: str):
+            self.name = name
+            self.remark = remark
+            self.shuffle()
+
+        def shuffle(self):
+            import base64
+
+            self.key1 = base64.b64encode(os.urandom(64)).decode('utf-8')
+            self.key2 = base64.b64encode(os.urandom(64)).decode('utf-8')
+
+    class DbWebhookEvent(db.Model):
+        id = db.Column(db.Integer, primary_key=True)
+        source = db.Column(db.String)
+        content = db.Column(db.String)
+        signature = db.Column(db.String)
+
+        def __init__(self, source: str, content: str, signature: str = None):
+            self.source = source
+            self.content = content
+            self.signature = signature
+
     def find_user(user_id: str):
         return DbUser.query.filter_by(id=user_id).first()
 
@@ -263,4 +291,4 @@ def init_database(app):
 
     Migrate(app, db)
 
-    return db, (DbUser, DbBuild, DbTestRun, DbTestCase, DbProjectSetting), funcs
+    return db, (DbUser, DbBuild, DbTestRun, DbTestCase, DbProjectSetting, DbAccessKey, DbWebhookEvent), funcs

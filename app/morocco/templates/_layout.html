@@ -21,6 +21,11 @@
         <li class="nav-item">
             <a class="nav-link" href="{{ url_for('tests') }}">Tests</a>
         </li>
+        {% if current_user.is_admin() %}
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('get_admin') }}">Admins</a>
+            </li>
+        {% endif %}
     </ul>
     <ul class="right">
         {% if current_user.is_authenticated %}
