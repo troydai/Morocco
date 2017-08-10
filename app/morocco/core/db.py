@@ -5,6 +5,7 @@ def init_database(app):
     import os
     from typing import Union
     from collections import namedtuple
+    from datetime import datetime
 
     from flask_login import UserMixin
     from flask_migrate import Migrate
@@ -41,15 +42,30 @@ def init_database(app):
         state = db.Column(db.String)
         tests = db.relationship('DbTestRun', backref='build', lazy='dynamic')
 
+        commit_author = db.Column(db.String)
+        commit_message = db.Column(db.String)
+        commit_date = db.Column(db.DateTime)
+        commit_url = db.Column(db.String)
+        build_download_url = db.Column(db.String)
+
         view_type = namedtuple('BuildView', ['id', 'creation_time', 'state'])
 
-        def __init__(self, job: CloudJob):
-            self.id = job.id
-            self.creation_time = job.creation_time
-            self.state = job.state.value
+        def __init__(self, job: CloudJob = None, commit: dict = None):
+            self.state = 'init'
+            self.creation_time = datetime.utcnow()
 
-        def get_view(self):
-            return self.view_type(self.id, str(self.creation_time), self.state)._asdict()
+            if job:
+                self.id = job.id
+                self.state = job.state.value
+            elif commit:
+                self.id = commit['sha']
+                self.update_commit(commit)
+
+        def update_commit(self, commit):
+            self.commit_author = commit['commit']['author']['name']
+            self.commit_date = datetime.strptime(commit['commit']['committer']['date'], '%Y-%m-%dT%H:%M:%SZ')
+            self.commit_message = commit['commit']['message']
+            self.commit_url = commit['html_url']
 
         def __repr__(self):
             return '<Build {}>'.format(self.id)

@@ -1,4 +1,6 @@
+import requests
 from collections import namedtuple
+from typing import List, Union
 
 from azure.batch import BatchServiceClient
 from azure.storage.blob import BlockBlobService
@@ -8,10 +10,33 @@ BatchAccountInfo = namedtuple('BatchAccountInfo', ['account', 'key', 'endpoint']
 SourceControlInfo = namedtuple('SourceControlInfo', ['url', 'branch'])
 StorageAccountInfo = namedtuple('StorageAccountInfo', ['account', 'key'])
 AutomationActorInfo = namedtuple('AutomationActorInfo', ['account', 'key', 'tenant'])
+GithubAppInfo = namedtuple('GithubAppInfo', ['id', 'secret'])
 
 
 def get_source_control_info() -> SourceControlInfo:
     return _read_section_from_config(SourceControlInfo, prefix='SOURCE')
+
+
+def get_source_control_commit(sha: str) -> Union[dict, None]:
+    git_url = get_source_control_info().url
+    git_url = git_url.replace('https://github.com', 'https://api.github.com/repos')[:-4] + '/commits/' + sha
+
+    response = requests.get(git_url)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        return None
+
+
+def get_source_control_commits():
+    git_url = get_source_control_info().url
+    git_url = git_url.replace('https://github.com', 'https://api.github.com/repos')[:-4] + '/commits'
+
+    return requests.get(git_url).json()
+
+
+def get_github_app_info() -> GithubAppInfo:
+    return _read_section_from_config(GithubAppInfo, prefix='GITHUB_CLIENT')
 
 
 def get_storage_account_info() -> StorageAccountInfo:
@@ -35,13 +60,11 @@ def get_batch_client() -> BatchServiceClient:
 
 
 def get_batch_pool(usage: str) -> CloudPool:
-    build_pool = next(pool for pool in get_batch_client().pool.list() if
-                      next(m.value for m in pool.metadata if m.name == 'usage') == usage)
+    for pool in get_batch_client().pool.list():
+        if next(m.value for m in pool.metadata if m.name == 'usage') == usage:
+            return pool
 
-    if not build_pool:
-        raise EnvironmentError('Fail to find a pool.')
-
-    return build_pool
+    raise EnvironmentError('Fail to find a pool.')
 
 
 def get_blob_storage_client() -> BlockBlobService:

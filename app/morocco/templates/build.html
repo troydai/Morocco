@@ -7,7 +7,7 @@
             </a>
             <ul>
                 <li>
-                    <form action="{{ url_for('refresh_build', sha=build.id) }}" method="post">
+                    <form action="{{ url_for('post_build', sha=build.id) }}" method="post">
                         <button type="submit" value="Refresh" class="btn btn-floating btn-large light-blue">
                             <i class="material-icons">refresh</i>
                         </button>
@@ -40,24 +40,19 @@
     {% endif %}
     <div class="row">
         <div class="container">
-
-            {#        <div class="col s12">#}
-            {#            <div class="card hoverable">#}
-            {#                <div class="card-content brown lighten-5">#}
-            <p class="flow-text">This snapshot was created on <strong class="yellow lighten-4">
-                {{ build.creation_time.strftime('%Y-%m-%d %H:%M UTC') }}</strong> based
-                on the commit <a href="https://github.com/Azure/azure-cli/commit/{{ build.id }}"><strong
-                        class="blue-text yellow lighten-4">{{ build.id[0:6] }}</strong></a>. The building status is
-                <strong class="yellow lighten-4">{{ build.state }}</strong>. </p>
+            <p class="flow-text">This snapshot was based on commit
+                <a href="{{ build.commit_url }}">
+                    <strong class="blue-text yellow lighten-4">{{ build.id[0:6] }}</strong>
+                </a> submitted on
+                <strong class="yellow lighten-4">
+                    {{ build.commit_date.strftime('%Y-%m-%d %H:%M UTC') }}.
+                </strong>
+                The building status is <strong class="yellow lighten-4">{{ build.state }}</strong>.
+            {% if build.build_download_url %}
+                The build can be downloaded <a href="{{ build.build_download_url }}"><strong>here</strong></a>
+            {% endif %}
+            </p>
         </div>
-        {#                </div>#}
-        {#                <div class="card-action brown lighten-4">#}
-        {#                    <ul>#}
-
-        {#                    </ul>#}
-        {#                </div>#}
-        {#            </div>#}
-        {#        </div>#}
     </div>
     <div class="row">
         <div class="col s12">

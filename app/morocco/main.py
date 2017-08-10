@@ -76,20 +76,26 @@ def logout():
 
 @app.route('/builds', methods=['GET'])
 def builds():
-    return render_template('builds.html', builds=DbBuild.query.order_by(DbBuild.creation_time.desc()).all(),
-                           title='Builds')
+    db_builds = DbBuild.query.order_by(DbBuild.commit_date.desc()).all()
+    return render_template('builds.html', builds=db_builds, title='Builds')
+
+
+@app.route('/builds', methods=['POST'])
+@login_required
+def sync_builds():
+    from morocco.core import get_source_control_commits, sync_build
+    build_commits = get_source_control_commits()
+
+    for commit in build_commits:
+        sync_build(commit=commit, create_job=True)
+
+    return redirect(url_for('builds'))
 
 
 @app.route('/build/<string:sha>', methods=['GET'])
 def build(sha: str):
     build_record = DbBuild.query.filter_by(id=sha).first()
     return render_template('build.html', build=build_record, title='Snapshot')
-
-
-@app.route('/build', methods=['POST'])
-@login_required
-def post_build():
-    return put_build(sha='<latest>')
 
 
 @app.route('/delete_build', methods=['POST'])
@@ -112,24 +118,14 @@ def delete_build():
 
 @app.route('/build/<string:sha>', methods=['POST'])
 @login_required
-def refresh_build(sha: str):
-    build_record = DbBuild.query.filter_by(id=sha).first()
-    if not build_record:
-        return 'Not found', 404
+def post_build(sha: str):
+    from morocco.core import sync_build
+    sync_build(sha=sha, create_job=False)
 
-    batch_client = get_batch_client()
-    job = batch_client.job.get(sha)
-    if not job:
-        return 'Cloud job is not found', 400
-
-    build_task = batch_client.task.get(job_id=sha, task_id='build')
-    if not build_task:
-        return 'Cloud task for the build is not found', 400
-
-    build_record.state = build_task.state.value
-    db.session.commit()
-
-    return redirect(url_for('build', sha=sha))
+    if 'redirect' in request.form:
+        return redirect(request.form['redirect'])
+    else:
+        return redirect(url_for('build', sha=sha))
 
 
 @app.route('/tests', methods=['GET'])
@@ -185,40 +181,6 @@ def get_admin():
     return render_template('admin.html')
 
 
-@app.route('/build/<string:sha>', methods=['PUT'])
-@login_required
-def put_build(sha: str):
-    import requests
-    from azure.batch.models import BatchErrorException
-    from morocco.core import get_source_control_info
-    from morocco.batch import create_build_job
-
-    git_url = get_source_control_info().url
-    git_url = git_url.replace('https://github.com', 'https://api.github.com/repos')[:-4] + '/commits'
-    if sha == '<latest>':
-        response = requests.get(git_url)
-        sha = response.json()[0]['sha']
-    else:
-        if not requests.get('{}/{}'.format(git_url, sha)).status_code == 200:
-            return 'Commit {} not found'.format(sha), 404
-
-    try:
-        job = get_batch_client().job.get(sha)
-    except BatchErrorException:
-        job = create_build_job(sha)
-
-    build_record = DbBuild.query.filter_by(id=sha).first()
-    if build_record:
-        build_record.state = job.state.value
-    else:
-        build_record = DbBuild(job)
-        db.session.add(build_record)
-
-    db.session.commit()
-
-    return redirect(url_for('build', sha=sha))
-
-
 @app.route('/api/build/<string:sha>', methods=['PUT'])
 def api_put_build(sha: str):
     secret = request.form.get('secret')
@@ -238,12 +200,7 @@ def api_put_build(sha: str):
     if expect_secret != secret:
         return 'Invalid secret', 403
 
-    build_task = batch_client.task.get(job_id=sha, task_id='build')
-    if not build_task:
-        return 'Cloud task for the build is not found', 400
-
-    build_record.state = build_task.state.value
-    db.session.commit()
+    post_build(sha=sha)
 
     return json.dumps(build_record.get_view())
 
