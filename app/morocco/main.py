@@ -210,6 +210,8 @@ def post_access_key():
 
 @app.route('/api/build', methods=['POST'])
 def post_api_build():
+    from morocco.auth.util import validate_github_webhook
+
     client_id = request.args.get('client_id')
     if not client_id:
         return 'Forbidden', 401
@@ -221,23 +223,17 @@ def post_api_build():
 
     if request.headers.get('X-GitHub-Event') == 'push':
         # to validate it in the future
-        sig = request.headers.get('X-Hub-Signature')
-        event = DbWebhookEvent(source='github', content=request.data.decode('utf-8'), signature=sig)
+        event = DbWebhookEvent(source='github', content=request.data.decode('utf-8'),
+                               signature=request.headers.get('X-Hub-Signature'))
         db.session.add(event)
         db.session.commit()
 
-        if sig:
-            import hmac
-            sig = sig.split('=')[1]
-            mac = hmac.new(key.key1.encode(), msg=request.data, digestmod='sha1')
-            if hmac.compare_digest(str(mac.hexdigest()), str(sig)):
-                return 'OK', 200
-            else:
-                return 'Invalid {}'.format(mac.hexdigest()), 403
-        else:
-            return 'OK', 200
+        if not validate_github_webhook(request, key.key1):
+            return 'Invalid request', 403
 
-    return 'Not found', 404
+        return 'OK', 200
+
+    return 'Forbidden', 401
 
 
 @app.route('/api/build/<string:sha>', methods=['PUT'])
