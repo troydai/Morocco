@@ -21,6 +21,9 @@ def get_source_control_commit(sha: str) -> Union[dict, None]:
     git_url = get_source_control_info().url
     git_url = git_url.replace('https://github.com', 'https://api.github.com/repos')[:-4] + '/commits/' + sha
 
+    credential = get_github_app_info()
+    git_url += '?client_id={}&client_secret={}'.format(credential.id, credential.secret)
+
     response = requests.get(git_url)
     if response.status_code == 200:
         return response.json()
@@ -31,6 +34,9 @@ def get_source_control_commit(sha: str) -> Union[dict, None]:
 def get_source_control_commits():
     git_url = get_source_control_info().url
     git_url = git_url.replace('https://github.com', 'https://api.github.com/repos')[:-4] + '/commits'
+
+    credential = get_github_app_info()
+    git_url += '?client_id={}&client_secret={}'.format(credential.id, credential.secret)
 
     return requests.get(git_url).json()
 
