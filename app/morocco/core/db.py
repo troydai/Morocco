@@ -51,6 +51,7 @@ def init_database(app):
         commit_date = db.Column(db.DateTime)
         commit_url = db.Column(db.String)
         build_download_url = db.Column(db.String)
+        suppressed = db.Column(db.Boolean)
 
         view_type = namedtuple('BuildView', ['id', 'creation_time', 'state'])
 

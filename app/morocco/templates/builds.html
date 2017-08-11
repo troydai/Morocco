@@ -21,8 +21,7 @@
             <p class="flow-text">You can find the snapshots for the <i class="yellow lighten-4"><a
                     href="https://github.com/azure/azure-cli" class="black-text">Azure CLI repository</a></i>
                 for each git commits here. The snapshots are associated with <i class="yellow lighten-4"><a
-                        href="{{ url_for('tests') }}" class="black-text">test runs</a></i>. If the latest
-                commits doesn't have a corresponding snapshot here, you can trigger a new one.
+                        href="{{ url_for('tests') }}" class="black-text">test runs</a></i>.
             </p>
         </div>
     </div>
@@ -37,6 +36,10 @@
                     <th>Date</th>
                     <th>State</th>
                     <th>Run</th>
+                    {% if current_user.is_admin() %}
+                        <th></th>
+                        <th></th>
+                    {% endif %}
                 </tr>
                 </thead>
                 <tbody>
@@ -49,6 +52,24 @@
                         <td style="width: 10%">{{ build.commit_date.strftime('%Y-%m-%d') if build.commit_date else 'N/A' }}</td>
                         <td style="width: 10%">{{ build.state }}</td>
                         <td style="width: 5%">{{ build.tests.count() }}</td>
+                        {% if current_user.is_admin() %}
+                            <td>
+                                <form action="{{ url_for('post_build', sha=build.id) }}" method="post">
+                                    <input type="hidden" name="action" value="refresh">
+                                    <input type="hidden" name="redirect" value="{{ url_for('get_builds') }}">
+                                    <button type="submit" value="Refresh" class="x-btn-mini btn btn-flat">
+                                        <i class="material-icons">refresh</i></button>
+                                </form>
+                            </td>
+                            <td>
+                                <form action="{{ url_for('post_build', sha=build.id) }}" method="post">
+                                    <input type="hidden" name="action" value="suppress">
+                                    <input type="hidden" name="redirect" value="{{ url_for('get_builds') }}">
+                                    <button type="submit" value="Refresh" class="x-btn-mini btn btn-flat">
+                                        <i class="material-icons">delete</i></button>
+                                </form>
+                            </td>
+                        {% endif %}
                     </tr>
                 {% endfor %}
                 </tbody>

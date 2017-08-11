@@ -2,3 +2,8 @@ table {
     font-family: 'Roboto', sans-serif;
     font-size: small;
 }
+
+.x-btn-mini {
+    padding-left: 0.2rem;
+    padding-right: 0.2rem;
+}

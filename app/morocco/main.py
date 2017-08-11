@@ -6,8 +6,7 @@ import logging
 from flask import Flask, render_template, request, redirect, url_for
 from flask_login import LoginManager, login_required
 
-from morocco.batch import get_metadata
-from morocco.core import init_database, load_config, get_batch_client
+from morocco.core import init_database, load_config
 from morocco.util import get_logger
 
 app = Flask(__name__)
@@ -75,8 +74,12 @@ def logout():
 
 
 @app.route('/builds', methods=['GET'])
-def builds():
-    db_builds = DbBuild.query.order_by(DbBuild.commit_date.desc()).all()
+def get_builds():
+    query = DbBuild.query
+    if request.args.get('include_suppressed') != 'true':
+        query = query.filter_by(suppressed=False)
+
+    db_builds = query.order_by(DbBuild.commit_date.desc()).all()
     return render_template('builds.html', builds=db_builds, title='Builds')
 
 
@@ -89,7 +92,7 @@ def sync_builds():
     for commit in build_commits:
         sync_build(commit=commit, create_job=True)
 
-    return redirect(url_for('builds'))
+    return redirect(url_for('get_builds'))
 
 
 @app.route('/build/<string:sha>', methods=['GET'])
@@ -111,7 +114,7 @@ def delete_build():
             db.session.delete(t)
         db.session.delete(build_to_delete)
         db.session.commit()
-        return redirect(url_for('builds'))
+        return redirect(url_for('get_builds'))
     else:
         return "Build {} not found".format(commit_sha), 404
 
@@ -119,8 +122,18 @@ def delete_build():
 @app.route('/build/<string:sha>', methods=['POST'])
 @login_required
 def post_build(sha: str):
-    from morocco.core import sync_build
-    sync_build(sha=sha, create_job=False)
+    action = request.form.get('action')
+    if action == 'refresh':
+        from morocco.core import sync_build
+        sync_build(sha=sha, create_job=False)
+    elif action == 'suppress':
+        build_record = DbBuild.query.filter_by(id=sha).one_or_none()
+        if not build_record:
+            return 'Build not found', 404
+        build_record.suppressed = True
+        db.session.commit()
+    else:
+        return 'Unknown action', 400
 
     if 'redirect' in request.form:
         return redirect(request.form['redirect'])
@@ -210,7 +223,7 @@ def post_access_key():
 
 @app.route('/api/build', methods=['POST'])
 def post_api_build():
-    from morocco.auth.util import validate_github_webhook, validate_batch_callback
+    from morocco.auth.util import validate_github_webhook
     from morocco.core.operations import on_github_push, on_batch_callback
 
     if request.headers.get('X-GitHub-Event') == 'push':
@@ -240,9 +253,7 @@ def post_api_build():
         db.session.add(event)
         db.session.commit()
 
-        if not validate_batch_callback(request):
-            return 'Invalid request', 403
-
+        # the callback's credential is validated in on_batch_callback
         msg, status = on_batch_callback(request, DbBuild)
         return msg, status
 
