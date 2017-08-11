@@ -25,7 +25,7 @@ def sync_build(commit: dict = None, sha: str = None, create_job=False):
         build_record.update_commit(commit)
     else:
         build_record = DbBuild(commit=commit)
-        db.session.add(DbBuild(commit))
+        db.session.add(build_record)
 
     try:
         batch_job = get_batch_client().job.get(sha)
@@ -52,3 +52,18 @@ def sync_build(commit: dict = None, sha: str = None, create_job=False):
     db.session.commit()
 
     return build_record
+
+
+def on_github_push(payload: dict) -> str:
+    from morocco.main import DbBuild
+    from morocco.core import get_source_control_commits
+
+    if payload['ref'] != 'refs/heads/master':
+        return 'Skip push on branch other than master.'
+
+    last_build = DbBuild.query.order_by(DbBuild.commit_date.desc()).first()
+    commits = get_source_control_commits(since=last_build.commit_date.strftime('%Y-%m-%dT%H:%M:%SZ'))
+    for commit in commits[:-1]:
+        sync_build(commit, create_job=True)
+
+    return 'Success: {} build scheduled'.format(len(commits) - 1)

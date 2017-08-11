@@ -31,12 +31,15 @@ def get_source_control_commit(sha: str) -> Union[dict, None]:
         return None
 
 
-def get_source_control_commits():
+def get_source_control_commits(since=None):
     git_url = get_source_control_info().url
     git_url = git_url.replace('https://github.com', 'https://api.github.com/repos')[:-4] + '/commits'
 
     credential = get_github_app_info()
     git_url += '?client_id={}&client_secret={}'.format(credential.id, credential.secret)
+
+    if since:
+        git_url += '&since={}'.format(since)
 
     return requests.get(git_url).json()
 

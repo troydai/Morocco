@@ -211,6 +211,7 @@ def post_access_key():
 @app.route('/api/build', methods=['POST'])
 def post_api_build():
     from morocco.auth.util import validate_github_webhook
+    from morocco.core import on_github_push
 
     client_id = request.args.get('client_id')
     if not client_id:
@@ -231,7 +232,9 @@ def post_api_build():
         if not validate_github_webhook(request, key.key1):
             return 'Invalid request', 403
 
-        return 'OK', 200
+        msg = on_github_push(request.json)
+
+        return msg, 200
 
     return 'Forbidden', 401
 
