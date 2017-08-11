@@ -27,7 +27,7 @@
     </div>
     <div class="row">
         <div class="container">
-            <table class="highlight">
+            <table class="highlight table-condense">
                 <thead>
                 <tr>
                     <th>SHA</th>
@@ -36,7 +36,7 @@
                     <th>Date</th>
                     <th>State</th>
                     <th>Run</th>
-                    {% if current_user.is_admin() %}
+                    {% if current_user.is_authenticated and current_user.is_admin() %}
                         <th></th>
                         <th></th>
                     {% endif %}
@@ -45,14 +45,14 @@
                 <tbody>
                 {% for build in builds %}
                     <tr>
-                        <td style="width: 10%"><code><a
+                        <td><code><a
                                 href="{{ url_for('build', sha=build.id) }}">{{ build.id[:7] }}</a></code></td>
-                        <td style="width: 10%">{{ build.commit_author }}</td>
-                        <td style="width: 55%">{{ build.commit_message.strip().split('\n')[0] if build.commit_message else '' }}</td>
-                        <td style="width: 10%">{{ build.commit_date.strftime('%Y-%m-%d') if build.commit_date else 'N/A' }}</td>
-                        <td style="width: 10%">{{ build.state }}</td>
-                        <td style="width: 5%">{{ build.tests.count() }}</td>
-                        {% if current_user.is_admin() %}
+                        <td style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 8rem">{{ build.commit_author }}</td>
+                        <td style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 30rem">{{ build.commit_message.strip().split('\n')[0] if build.commit_message else '' }}</td>
+                        <td style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{ build.commit_date.strftime('%Y-%m-%d') if build.commit_date else 'N/A' }}</td>
+                        <td>{{ build.state }}</td>
+                        <td>{{ build.tests.count() }}</td>
+                        {% if current_user.is_authenticated and current_user.is_admin() %}
                             <td>
                                 <form action="{{ url_for('post_build', sha=build.id) }}" method="post">
                                     <input type="hidden" name="action" value="refresh">
