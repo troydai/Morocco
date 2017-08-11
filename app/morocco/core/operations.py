@@ -1,3 +1,6 @@
+from typing import Tuple
+
+
 def sync_build(commit: dict = None, sha: str = None, create_job=False):
     from datetime import datetime, timedelta
 
@@ -67,3 +70,32 @@ def on_github_push(payload: dict) -> str:
         sync_build(commit, create_job=True)
 
     return 'Success: {} build scheduled'.format(len(commits) - 1)
+
+
+def on_batch_callback(request, db_build_model) -> Tuple[str, int]:
+    from morocco.core import get_batch_client
+    from morocco.batch import get_metadata
+    secret = request.form.get('secret')
+    if not secret:
+        return 'Missing secret', 403
+
+    sha = request.form.get('sha')
+    if not sha:
+        return 'Missing commit sha', 400
+
+    build_record = db_build_model.query.filter_by(id=sha).first()
+    if not build_record:
+        return 'Build found', 404
+
+    batch_client = get_batch_client()
+    job = batch_client.job.get(sha)
+    if not job:
+        return 'Cloud job is not found', 400
+
+    expect_secret = get_metadata(job.metadata, 'secret')
+    if expect_secret != secret:
+        return 'Invalid secret', 403
+
+    sync_build(sha=sha, create_job=False)
+
+    return 'OK', 200

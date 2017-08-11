@@ -210,17 +210,8 @@ def post_access_key():
 
 @app.route('/api/build', methods=['POST'])
 def post_api_build():
-    from morocco.auth.util import validate_github_webhook
-    from morocco.core import on_github_push
-
-    client_id = request.args.get('client_id')
-    if not client_id:
-        return 'Forbidden', 401
-
-    key = DbAccessKey.query.filter_by(name=client_id).one_or_none()
-    if not key:
-        # unknown client
-        return 'Forbidden', 401
+    from morocco.auth.util import validate_github_webhook, validate_batch_callback
+    from morocco.core.operations import on_github_push, on_batch_callback
 
     if request.headers.get('X-GitHub-Event') == 'push':
         # to validate it in the future
@@ -229,38 +220,33 @@ def post_api_build():
         db.session.add(event)
         db.session.commit()
 
+        client_id = request.args.get('client_id')
+        if not client_id:
+            return 'Forbidden', 401
+
+        key = DbAccessKey.query.filter_by(name=client_id).one_or_none()
+        if not key:
+            # unknown client
+            return 'Forbidden', 401
+
         if not validate_github_webhook(request, key.key1):
             return 'Invalid request', 403
 
         msg = on_github_push(request.json)
 
         return msg, 200
+    elif request.headers.get('X-Batch-Event') == 'build.finished':
+        event = DbWebhookEvent(source='batch', content=request.data.decode('utf-8'))
+        db.session.add(event)
+        db.session.commit()
+
+        if not validate_batch_callback(request):
+            return 'Invalid request', 403
+
+        msg, status = on_batch_callback(request, DbBuild)
+        return msg, status
 
     return 'Forbidden', 401
-
-
-@app.route('/api/build/<string:sha>', methods=['PUT'])
-def api_put_build(sha: str):
-    secret = request.form.get('secret')
-    if not secret:
-        return 'Missing secret', 403
-
-    build_record = DbBuild.query.filter_by(id=sha).first()
-    if not build_record:
-        return 'Not found', 404
-
-    batch_client = get_batch_client()
-    job = batch_client.job.get(sha)
-    if not job:
-        return 'Cloud job is not found', 400
-
-    expect_secret = get_metadata(job.metadata, 'secret')
-    if expect_secret != secret:
-        return 'Invalid secret', 403
-
-    post_build(sha=sha)
-
-    return json.dumps(build_record.get_view())
 
 
 @app.route('/api/test/<string:job_id>', methods=['PUT'])

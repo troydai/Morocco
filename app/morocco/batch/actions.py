@@ -87,8 +87,8 @@ def create_build_job(commit_sha: str) -> CloudJob:
                                   display_name='Build all product and test code.',
                                   output_files=[output_file])
 
-    report_cmd = 'curl -X put {} --data-urlencode secret={}'.format(
-        url_for('api_put_build', sha=commit_sha, _external=True, _scheme='https'), secret)
+    report_cmd = 'curl -X post {} -H X-Batch-Event: --data-urlencode secret={} --data-urlencode sha={}'.format(
+        url_for('post_api_build', _external=True, _scheme='https'), secret, commit_sha)
 
     report_task = TaskAddParameter(id='report',
                                    command_line=get_command_string(report_cmd),
