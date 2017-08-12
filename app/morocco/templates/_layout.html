@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
 </head>
 <body>
-<nav class="{% if current_user.is_authenticated and current_user.is_admin() %}purple{% else %}blue{% endif %} z-depth-3">
+<nav class="{% if current_user.is_authenticated and current_user.is_admin() %}blue-grey{% endif %} z-depth-3">
     <a href='#' class="brand-logo center">{{ title }}</a>
     <ul class="left">
         <li class="nav-item">

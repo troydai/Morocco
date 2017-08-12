@@ -105,24 +105,6 @@ def build(sha: str):
     return render_template('build.html', build=build_record, title='Snapshot')
 
 
-@app.route('/delete_build', methods=['POST'])
-@login_required
-def delete_build():
-    commit_sha = request.form.get('commit_sha')
-    if not commit_sha:
-        return "Missing commit sha for identifying build", 400
-
-    build_to_delete = DbBuild.query.filter_by(id=commit_sha).one_or_none()
-    if build_to_delete:
-        for t in build_to_delete.tests:
-            db.session.delete(t)
-        db.session.delete(build_to_delete)
-        db.session.commit()
-        return redirect(url_for('get_builds'))
-    else:
-        return "Build {} not found".format(commit_sha), 404
-
-
 @app.route('/build/<string:sha>', methods=['POST'])
 @login_required
 def post_build(sha: str):
