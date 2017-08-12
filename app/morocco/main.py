@@ -127,9 +127,9 @@ def delete_build():
 @login_required
 def post_build(sha: str):
     action = request.form.get('action')
-    if action == 'refresh':
+    if action == 'refresh' or action == 'rebuild':
         from morocco.core import sync_build
-        sync_build(sha=sha, create_job=False)
+        sync_build(sha=sha, create_job=(action == 'rebuild'))
     elif action == 'suppress':
         build_record = DbBuild.query.filter_by(id=sha).one_or_none()
         if not build_record:
@@ -137,7 +137,7 @@ def post_build(sha: str):
         build_record.suppressed = True
         db.session.commit()
     else:
-        return 'Unknown action', 400
+        return 'Unknown action {}'.format(action or 'None'), 400
 
     if 'redirect' in request.form:
         return redirect(request.form['redirect'])

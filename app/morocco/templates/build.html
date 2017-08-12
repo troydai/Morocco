@@ -2,14 +2,23 @@
 {% block body %}
     {% if current_user.is_authenticated %}
         <div class="fixed-action-btn" style="position: absolute">
-            <a class="btn-floating btn-large light-blue darken-4">
+            <a class="btn-floating btn-large">
                 <i class="large material-icons">build</i>
             </a>
             <ul>
                 <li>
                     <form action="{{ url_for('post_build', sha=build.id) }}" method="post">
-                        <button type="submit" value="Refresh" class="btn btn-floating btn-large light-blue">
+                        <input type="hidden" name="action" value="refresh">
+                        <button type="submit" value="Refresh" class="btn btn-floating">
                             <i class="material-icons">refresh</i>
+                        </button>
+                    </form>
+                </li>
+                <li>
+                    <form action="{{ url_for('post_build', sha=build.id) }}" method="post">
+                        <input type="hidden" name="action" value="rebuild">
+                        <button type="submit" value="Refresh" class="btn btn-floating">
+                            <i class="material-icons">add</i>
                         </button>
                     </form>
                 </li>
@@ -17,20 +26,20 @@
                     <form action="{{ url_for('post_test') }}" method="post">
                         <input type="hidden" name="build_id" value="{{ build.id }}">
                         <input type="hidden" name="live" value="false">
-                        <input type="submit" value="Test" class="btn btn-floating btn-large light-blue darken-1">
+                        <input type="submit" value="Test" class="btn btn-floating">
                     </form>
                 </li>
                 <li>
                     <form action="{{ url_for('post_test') }}" method="post">
                         <input type="hidden" name="build_id" value="{{ build.id }}">
                         <input type="hidden" name="live" value="true">
-                        <input type="submit" value="Live" class="btn btn-floating btn-large light-blue darken-2">
+                        <input type="submit" value="Live" class="btn btn-floating">
                     </form>
                 </li>
                 <li>
-                    <form action="{{ url_for('delete_build') }}" method="post">
-                        <input type="hidden" name="commit_sha" value="{{ build.id }}">
-                        <button type="submit" value="Delete" class="btn btn-floating btn-large light-blue darken-3">
+                    <form action="{{ url_for('post_build', sha=build.id) }}" method="post">
+                        <input type="hidden" name="action" value="suppress">
+                        <button type="submit" value="Delete" class="btn btn-floating">
                             <i class="material-icons">delete</i>
                         </button>
                     </form>

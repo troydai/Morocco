@@ -4,7 +4,7 @@ from typing import Tuple
 def sync_build(commit: dict = None, sha: str = None, create_job=False):
     from datetime import datetime, timedelta
 
-    from azure.batch.models import BatchErrorException
+    from azure.batch.models import BatchErrorException, JobState
     from azure.storage.blob.models import BlobPermissions
 
     from morocco.core.services import (get_source_control_commit, get_source_control_commits, get_batch_client,
@@ -31,7 +31,11 @@ def sync_build(commit: dict = None, sha: str = None, create_job=False):
         db.session.add(build_record)
 
     try:
-        batch_job = get_batch_client().job.get(sha)
+        batch_client = get_batch_client()
+        batch_job = batch_client.job.get(sha)
+        if create_job and batch_job.state == JobState.completed:
+            batch_client.job.delete(sha)
+            batch_job = create_build_job(sha)
     except BatchErrorException:
         if create_job:
             batch_job = create_build_job(sha)
