@@ -80,13 +80,17 @@ def get_builds():
         query = query.filter_by(suppressed=False)
 
     db_builds = query.order_by(DbBuild.commit_date.desc()).all()
-    return render_template('builds.html', builds=db_builds, title='Builds')
+    return render_template('builds.html', builds=db_builds, title='Snapshots')
 
 
 @app.route('/builds', methods=['POST'])
 @login_required
 def sync_builds():
     from morocco.core import get_source_control_commits, sync_build
+    from flask_login import current_user
+    if not current_user.is_authenticated or not current_user.is_admin():
+        return 'Forbidden', 403
+
     build_commits = get_source_control_commits()
 
     for commit in build_commits:
@@ -195,8 +199,9 @@ def get_admin():
         return 'Check your privilege, Bro.', 403
 
     keys = DbAccessKey.query.all()
+    users = DbUser.query.all()
 
-    return render_template('admin.html', title='Admin', keys=keys)
+    return render_template('admin.html', title='Admin', keys=keys, users=users)
 
 
 @app.route('/admin/access_key', methods=['POST'])

@@ -1,30 +1,5 @@
 {% extends "_layout.html" %}
 {% block body %}
-    {% if current_user.is_authenticated %}
-        <div class="fixed-action-btn" style="position: absolute">
-            <a class="btn-floating btn-large light-blue darken-4">
-                <i class="large material-icons">build</i>
-            </a>
-            <ul>
-                <li>
-                    <form action="{{ url_for('sync_builds') }}" method="post">
-                        <button type="submit" value="Refresh" class="btn btn-floating btn-large light-blue">
-                            <i class="material-icons">refresh</i>
-                        </button>
-                    </form>
-                </li>
-            </ul>
-        </div>
-    {% endif %}
-    <div class="row">
-        <div class="container">
-            <p class="flow-text">You can find the snapshots for the <i class="yellow lighten-4"><a
-                    href="https://github.com/azure/azure-cli" class="black-text">Azure CLI repository</a></i>
-                for each git commits here. The snapshots are associated with <i class="yellow lighten-4"><a
-                        href="{{ url_for('tests') }}" class="black-text">test runs</a></i>.
-            </p>
-        </div>
-    </div>
     <div class="row">
         <div class="container">
             <table class="highlight table-condense">

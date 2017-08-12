@@ -3,26 +3,10 @@
     <div class="container">
         <div class="row">
             <h1>Access keys</h1>
-            <form action="{{ url_for('post_access_key') }}" method="post">
-                <div class="row">
-                    <input type="hidden" name="action" value="new">
-                    <div class="input-field col s2">
-                        <input placeholder="" id="name" name="name" type="text" class="validate">
-                        <label for="name">Name</label>
-                    </div>
-                    <div class="input-field col s8">
-                        <input placeholder="" id="remark" name="remark" type="text" class="validate">
-                        <label for="remark">Remark</label>
-                    </div>
-                    <div class="input-field col s2">
-                        <button class="btn waves-effect waves-light" type="submit" name="action">New Key</button>
-                    </div>
-                </div>
-            </form>
             <ul class="collapsible" data-collapsible="accordion">
                 {% for key in keys %}
                     <li>
-                        <div class="collapsible-header">{{ key.name }} - {{ key.remark }}</div>
+                        <div class="collapsible-header">Key: {{ key.name }} - {{ key.remark }}</div>
                         <div class="collapsible-body">
                             <div class="row">
                                 <code style="font-size: small;">{{ key.key1 }}</code>
@@ -30,17 +14,67 @@
                             <div class="row">
                                 <code style="font-size: small;">{{ key.key2 }}</code>
                             </div>
-                            <form action="{{ url_for('post_access_key') }}" method="post">
-                                <input type="hidden" name="action" value="delete">
-                                <input type="hidden" name="name" value="{{ key.name }}">
-                                <button class="btn waves-effect waves-light" type="submit" name="action">
-                                    Delete
-                                </button>
-                            </form>
+                            <div class="row">
+                                <form action="{{ url_for('post_access_key') }}" method="post">
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="name" value="{{ key.name }}">
+                                    <button class="btn waves-effect waves-light" type="submit" name="action">
+                                        Delete
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </li>
                 {% endfor %}
+                <li>
+                    <div class="collapsible-header">Create new key</div>
+                    <div class="collapsible-body">
+                        <form action="{{ url_for('post_access_key') }}" method="post">
+                            <div class="row">
+                                <input type="hidden" name="action" value="new">
+                                <div class="input-field col s2">
+                                    <input placeholder="" id="name" name="name" type="text" class="validate">
+                                    <label for="name">Name</label>
+                                </div>
+                                <div class="input-field col s8">
+                                    <input placeholder="" id="remark" name="remark" type="text" class="validate">
+                                    <label for="remark">Remark</label>
+                                </div>
+                                <div class="input-field col s2">
+                                    <button class="btn waves-effect waves-light" type="submit" name="action">New Key
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </li>
             </ul>
+        </div>
+        <div class="row">
+            <h1>Users</h1>
+            <table>
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Role</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for u in users %}
+                    <tr>
+                        <td>{{ u.id }}</td>
+                        <td>{{ u.role }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+
+            </table>
+        </div>
+        <div class="row">
+            <h1>Admin tools</h1>
+            <form action="{{ url_for('sync_builds') }}" method="post">
+                <button type="submit" value="Refresh" class="btn btn-large">Sync snapshots</button>
+            </form>
         </div>
     </div>
 {% endblock %}
