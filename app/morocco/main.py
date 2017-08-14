@@ -8,6 +8,7 @@ from typing import Union
 
 from flask import Flask, render_template, request, redirect, url_for
 from flask_login import LoginManager, login_required, UserMixin
+from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 
 from morocco.core import load_config
@@ -38,6 +39,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['MOROCCO_DATABASE_URI']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 
 class DbUser(db.Model, UserMixin):
