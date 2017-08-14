@@ -39,6 +39,7 @@ class DbBuild(db.Model):
         from datetime import datetime
         self.state = 'init'
         self.creation_time = datetime.utcnow()
+        self.suppressed = False
 
         if job:
             self.id = job.id
@@ -169,11 +170,16 @@ class DbAccessKey(db.Model):
 
 class DbWebhookEvent(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    time = db.Column(db.DateTime)
     source = db.Column(db.String)
     content = db.Column(db.String)
     signature = db.Column(db.String)
+    remark = db.Column(db.String)
 
-    def __init__(self, source: str, content: str, signature: str = None):
+    def __init__(self, source: str, content: str, signature: str = None, remark: str = None):
+        from datetime import datetime
+        self.time = datetime.utcnow()
         self.source = source
         self.content = content
         self.signature = signature
+        self.remark = remark

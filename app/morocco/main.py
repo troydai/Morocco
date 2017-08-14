@@ -208,17 +208,26 @@ def post_api_build():
 
         client_id = request.args.get('client_id')
         if not client_id:
+            event.remark = 'missing client id'
+            db.session.commit()
             return 'Forbidden', 401
 
         key = DbAccessKey.query.filter_by(name=client_id).one_or_none()
         if not key:
             # unknown client
+            event.remark = 'access key not found in db'
+            db.session.commit()
             return 'Forbidden', 401
 
         if not validate_github_webhook(request, key.key1):
+            event.remark = 'github signature invalidate'
+            db.session.commit()
             return 'Invalid request', 403
 
         msg = on_github_push(request.json)
+
+        event.remark = 'success: {}'.format(msg)
+        db.session.commit()
 
         return msg, 200
     elif request.headers.get('X-Batch-Event') == 'build.finished':
@@ -228,6 +237,10 @@ def post_api_build():
 
         # the callback's credential is validated in on_batch_callback
         msg, status = on_batch_callback(request, DbBuild)
+
+        event.remark = 'Result: {} -> {}'.format(msg, status)
+        db.session.commit()
+
         return msg, status
 
     return 'Forbidden', 401
