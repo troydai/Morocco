@@ -13,19 +13,26 @@ from azure.storage.blob.models import BlobPermissions
 
 from .application import db, app, load_config_from_db
 from .models import DbUser, DbBuild, DbTestRun, DbTestCase, DbWebhookEvent, DbAccessKey
+from .view_models import Snapshot
 from .authentication import login_required
 
 load_config_from_db()
 
 
 @app.route('/builds', methods=['GET'])
-def get_builds():
+def builds():
     query = DbBuild.query
     if request.args.get('include_suppressed') != 'true':
         query = query.filter_by(suppressed=False)
 
-    db_builds = query.order_by(DbBuild.commit_date.desc()).all()
-    return render_template('builds.html', builds=db_builds, title='Snapshots')
+    view_models = (Snapshot(b) for b in query.order_by(DbBuild.commit_date.desc()).all())
+    return render_template('builds.html', models=view_models, title='Snapshots')
+
+
+@app.route('/build/<string:sha>', methods=['GET'])
+def build(sha: str):
+    view_model = Snapshot(DbBuild.query.filter_by(id=sha).first())
+    return render_template('build.html', model=view_model, title='Snapshot')
 
 
 @app.route('/builds', methods=['POST'])
@@ -41,13 +48,7 @@ def sync_builds():
     for commit in build_commits:
         sync_build(commit=commit, create_job=True)
 
-    return redirect(url_for('get_builds'))
-
-
-@app.route('/build/<string:sha>', methods=['GET'])
-def build(sha: str):
-    build_record = DbBuild.query.filter_by(id=sha).first()
-    return render_template('build.html', build=build_record, title='Snapshot')
+    return redirect(url_for('builds'))
 
 
 @app.route('/build/<string:sha>', methods=['POST'])

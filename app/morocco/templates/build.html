@@ -1,13 +1,13 @@
 {% extends '_layout.html' %}
 {% block body %}
     {% if current_user.is_authenticated %}
-        <div class="fixed-action-btn" style="position: absolute">
+        <div class="fixed-action-btn" style="position: absolute" xmlns:h5="http://www.w3.org/1999/html">
             <a class="btn-floating btn-large">
                 <i class="large material-icons">build</i>
             </a>
             <ul>
                 <li>
-                    <form action="{{ url_for('post_build', sha=build.id) }}" method="post">
+                    <form action="{{ url_for('post_build', sha=model.commit_sha) }}" method="post">
                         <input type="hidden" name="action" value="refresh">
                         <button type="submit" value="Refresh" class="btn btn-floating">
                             <i class="material-icons">refresh</i>
@@ -15,7 +15,7 @@
                     </form>
                 </li>
                 <li>
-                    <form action="{{ url_for('post_build', sha=build.id) }}" method="post">
+                    <form action="{{ url_for('post_build', sha=model.commit_sha) }}" method="post">
                         <input type="hidden" name="action" value="rebuild">
                         <button type="submit" value="Refresh" class="btn btn-floating">
                             <i class="material-icons">add</i>
@@ -24,20 +24,20 @@
                 </li>
                 <li>
                     <form action="{{ url_for('post_test') }}" method="post">
-                        <input type="hidden" name="build_id" value="{{ build.id }}">
+                        <input type="hidden" name="build_id" value="{{ model.commit_sha }}">
                         <input type="hidden" name="live" value="false">
                         <input type="submit" value="Test" class="btn btn-floating">
                     </form>
                 </li>
                 <li>
                     <form action="{{ url_for('post_test') }}" method="post">
-                        <input type="hidden" name="build_id" value="{{ build.id }}">
+                        <input type="hidden" name="build_id" value="{{ model.commit_sha }}">
                         <input type="hidden" name="live" value="true">
                         <input type="submit" value="Live" class="btn btn-floating">
                     </form>
                 </li>
                 <li>
-                    <form action="{{ url_for('post_build', sha=build.id) }}" method="post">
+                    <form action="{{ url_for('post_build', sha=model.commit_sha) }}" method="post">
                         <input type="hidden" name="action" value="suppress">
                         <button type="submit" value="Delete" class="btn btn-floating">
                             <i class="material-icons">delete</i>
@@ -50,21 +50,49 @@
     <div class="row">
         <div class="container">
             <p class="flow-text">This snapshot was based on commit
-                <a href="{{ build.commit_url }}">
-                    <strong class="blue-text yellow lighten-4">{{ build.id[0:6] }}</strong>
+                <a href="{{ model.commit_url }}">
+                    <strong class="blue-text yellow lighten-4">{{ model.commit_sha_short }}</strong>
                 </a> submitted on
                 <strong class="yellow lighten-4">
-                    {{ build.commit_date.strftime('%Y-%m-%d %H:%M UTC') }}.
+                    {{ model.commit_date }}.
                 </strong>
-                The building status is <strong class="yellow lighten-4">{{ build.state }}</strong>.
-                {% if build.build_download_url %}
-                    The build can be downloaded <a href="{{ build.build_download_url }}"><strong>here</strong></a>
+                The building status is <strong class="yellow lighten-4">{{ model.state }}</strong>.
+                {% if model.build_download_url %}
+                    The build can be downloaded <a href="{{ model.build_download_url }}"><strong>here</strong></a>
                 {% endif %}
             </p>
         </div>
     </div>
+    {% if model.last_live_test_run %}
     <div class="row">
         <div class="container">
+            <h5>Failed live tests</h5>
+            <p>Failed test cases from the latest live test run. You can find more details <a href="{{ url_for('test', job_id=model.last_live_test_run.id) }}">here</a>.</p>
+            <table class="highlight table-condense">
+                <thead>
+                <tr>
+                    <th>Module</th>
+                    <th>Failed Test</th>
+                    <th>Duration (s)</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for test_case in model.live_test_failed_cases %}
+                    <tr>
+                        <td>{{ test_case.module }}</td>
+                        <td>{{ test_case.test_method }}</td>
+                        <td>{{ test_case.test_duration }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+    {% if model.test_runs %}
+    <div class="row">
+        <div class="container">
+            <h5>All test runs</h5>
             <table class="highlight">
                 <thead>
                 <tr>
@@ -77,7 +105,7 @@
                 </tr>
                 </thead>
                 <tbody>
-                {% for test_run in build.tests %}
+                {% for test_run in model.test_runs %}
                     <tr>
                         <td><a href="{{ url_for('test', job_id=test_run.id) }}">{{ test_run.id }}</a></td>
                         <td>{{ test_run.creation_time.strftime('%Y-%m-%d %H:%M') }}</td>
@@ -91,4 +119,5 @@
             </table>
         </div>
     </div>
+    {% endif %}
 {% endblock %}

@@ -9,8 +9,7 @@
                     <th>Author</th>
                     <th>Message</th>
                     <th>Date</th>
-                    <th>State</th>
-                    <th>Run</th>
+                    <th>Pass Rate</th>
                     {% if current_user.is_authenticated and current_user.is_admin() %}
                         <th></th>
                         <th></th>
@@ -18,28 +17,27 @@
                 </tr>
                 </thead>
                 <tbody>
-                {% for build in builds %}
+                {% for snapshot in models %}
                     <tr>
                         <td><code><a
-                                href="{{ url_for('build', sha=build.id) }}">{{ build.id[:7] }}</a></code></td>
-                        <td style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 8rem">{{ build.commit_author }}</td>
-                        <td style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 30rem">{{ build.commit_message.strip().split('\n')[0] if build.commit_message else '' }}</td>
-                        <td style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{ build.commit_date.strftime('%Y-%m-%d') if build.commit_date else 'N/A' }}</td>
-                        <td>{{ build.state }}</td>
-                        <td>{{ build.tests.count() }}</td>
+                                href="{{ url_for('build', sha=snapshot.id) }}">{{ snapshot.id[:7] }}</a></code></td>
+                        <td style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 8rem">{{ snapshot.commit_author }}</td>
+                        <td style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 30rem">{{ snapshot.commit_subject }}</td>
+                        <td style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{ snapshot.commit_date }}</td>
+                        <td>{{ snapshot.live_test_pass_rate }}</td>
                         {% if current_user.is_authenticated and current_user.is_admin() %}
                             <td>
-                                <form action="{{ url_for('post_build', sha=build.id) }}" method="post">
+                                <form action="{{ url_for('post_build', sha=snapshot.id) }}" method="post">
                                     <input type="hidden" name="action" value="refresh">
-                                    <input type="hidden" name="redirect" value="{{ url_for('get_builds') }}">
+                                    <input type="hidden" name="redirect" value="{{ url_for('builds') }}">
                                     <button type="submit" value="Refresh" class="x-btn-mini btn btn-flat">
                                         <i class="material-icons">refresh</i></button>
                                 </form>
                             </td>
                             <td>
-                                <form action="{{ url_for('post_build', sha=build.id) }}" method="post">
+                                <form action="{{ url_for('post_build', sha=snapshot.id) }}" method="post">
                                     <input type="hidden" name="action" value="suppress">
-                                    <input type="hidden" name="redirect" value="{{ url_for('get_builds') }}">
+                                    <input type="hidden" name="redirect" value="{{ url_for('builds') }}">
                                     <button type="submit" value="Refresh" class="x-btn-mini btn btn-flat">
                                         <i class="material-icons">delete</i></button>
                                 </form>

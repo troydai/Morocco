@@ -6,7 +6,22 @@
     <title>Azure CLI 2.0 Automation</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.1/css/materialize.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
+    <style>
+        table {
+            font-family: 'Roboto', sans-serif;
+            font-size: small;
+        }
+
+        td {
+            padding-top: 5px;
+            padding-bottom: 5px;
+        }
+
+        .x-btn-mini {
+            padding-left: 0.2rem;
+            padding-right: 0.2rem;
+        }
+    </style>
 </head>
 <body>
 <nav class="{% if current_user.is_authenticated and current_user.is_admin() %}blue-grey{% endif %} z-depth-3">
@@ -16,7 +31,7 @@
             <a class="nav-link" href="{{ url_for('index') }}">Home</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('get_builds') }}">Builds</a>
+            <a class="nav-link" href="{{ url_for('builds') }}">Builds</a>
         </li>
         <li class="nav-item">
             <a class="nav-link" href="{{ url_for('tests') }}">Tests</a>

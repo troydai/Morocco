@@ -106,3 +106,6 @@ ENV/
 
 # azure cli
 .azure-config/
+
+# backup
+backup.sql
