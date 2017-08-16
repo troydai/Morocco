@@ -121,18 +121,17 @@ def refresh_test(job_id: str):
             if task.id == 'test-creator':
                 continue
 
-            test_run.total_tests += 1
             test_case = DbTestCase(task, test_run)
+            test_run.total_tests += 1
+            test_run.failed_tests += 1 if not test_case.passed else 0
 
-            if not test_case.passed:
-                test_run.failed_tests += 1
-                container_name = 'output-' + test_run.id
-                blob_name = os.path.join(task.id, 'stdout.txt')
-                sas = storage.generate_blob_shared_access_signature(container_name, blob_name,
-                                                                    permission=BlobPermissions(read=True),
-                                                                    protocol='https',
-                                                                    expiry=(datetime.utcnow() + timedelta(hours=1)))
-                url = storage.make_blob_url(container_name, blob_name, sas_token=sas, protocol='https')
+            container_name = 'output-' + test_run.id
+            blob_name = os.path.join(task.id, 'stdout.txt')
+            sas = storage.generate_blob_shared_access_signature(container_name, blob_name,
+                                                                permission=BlobPermissions(read=True),
+                                                                protocol='https',
+                                                                expiry=(datetime.utcnow() + timedelta(hours=1)))
+            url = storage.make_blob_url(container_name, blob_name, sas_token=sas, protocol='https')
 
             response = requests.request('GET', url)
             test_case.output = '\n'.join(response.text.split('\n')[58:-3])
