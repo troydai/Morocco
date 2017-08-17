@@ -221,7 +221,6 @@ def api_hook():
         db.session.add(event)
         db.session.commit()
 
-        sync_test_run(request.form['job_id'])
-        return 'Update {}'.format(request.form['job_id']), 200
+        return sync_test_run(request.form['job_id'])
 
     return 'Unknown event', 400

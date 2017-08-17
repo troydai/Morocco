@@ -111,7 +111,7 @@ def sync_test_run(job_id: str):
             db.session.add(test_case)
     db.session.commit()
 
-    return test_run
+    return 'Test run {} updated'.format(job_id), 200
 
 
 def on_github_push(payload: dict) -> str:
