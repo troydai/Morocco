@@ -63,8 +63,6 @@ class DbTestRun(db.Model):
     id = db.Column(db.String, primary_key=True)
     creation_time = db.Column(db.DateTime)
     live = db.Column(db.Boolean)
-    total_tests = db.Column(db.Integer)
-    failed_tests = db.Column(db.Integer)
     state = db.Column(db.String)
 
     build_id = db.Column(db.String, db.ForeignKey('db_build.id'))
@@ -78,9 +76,6 @@ class DbTestRun(db.Model):
         self.build_id = get_metadata(job.metadata, 'build')
         self.live = get_metadata(job.metadata, 'live') == 'True'
         self.state = job.state.value
-
-        self.total_tests = 0
-        self.failed_tests = 0
 
     def __repr__(self):
         return '<TestRun {}>'.format(self.id)
@@ -97,6 +92,14 @@ class DbTestRun(db.Model):
 
     def get_view(self):
         return self.view_type(self.id, str(self.creation_time), self.state, self.total_tests, self.failed_tests)
+
+    @property
+    def total_tests(self):
+        return len(list(self.test_cases))
+
+    @property
+    def failed_tests(self):
+        return len(list(t for t in self.test_cases if not t.passed))
 
 
 class DbTestCase(db.Model):  # pylint: disable=too-many-instance-attributes, too-few-public-methods

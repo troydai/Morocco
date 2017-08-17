@@ -114,29 +114,31 @@ def create_test_job(build_id: str, run_live: bool = False) -> str:  # pylint: di
 
     def _list_build_resource_files() -> Iterable[ResourceFile]:
         """ List the files belongs to the target build in the build blob container """
-        if not storage_client.get_container_properties('builds'):
-            logger.error('The build container %s is not found.', 'builds')
-            raise ValueError('The build not found.')
+        permission = ContainerPermissions(read=True)
+        expiry = (datetime.utcnow() + timedelta(days=1))
+        build_sas = storage_client.generate_container_shared_access_signature(container_name='builds',
+                                                                              permission=permission,
+                                                                              expiry=expiry)
+        app_sas = storage_client.generate_container_shared_access_signature(container_name='app',
+                                                                            permission=permission,
+                                                                            expiry=expiry)
 
-        sas = storage_client.generate_container_shared_access_signature(container_name='builds',
-                                                                        permission=ContainerPermissions(read=True),
-                                                                        expiry=(datetime.utcnow() + timedelta(days=1)))
-        logger.info('Container %s is found and read only SAS token is generated.', 'builds')
-
-        return [ResourceFile(blob_source=storage_client.make_blob_url('builds', output_file_name, 'https', sas),
-                             file_path=output_file_name)]
+        return [ResourceFile(blob_source=storage_client.make_blob_url('builds', output_file_name, 'https', build_sas),
+                             file_path=output_file_name),
+                ResourceFile(blob_source=storage_client.make_blob_url('app', 'tangier.tar', 'https', app_sas),
+                             file_path='tangier.tar')]
 
     def _create_output_container_folder() -> str:
         """ Create output storage container """
-        output_container_name = 'output-{}'.format(job_id)
-        storage_client.create_container(container_name=output_container_name)
+        # output_container_name = 'output-{}'.format(job_id)
+        storage_client.create_container(container_name='output')
 
         return storage_client.make_blob_url(
-            container_name=output_container_name,
+            container_name='output',
             blob_name='',
             protocol='https',
             sas_token=storage_client.generate_container_shared_access_signature(
-                container_name=output_container_name,
+                container_name='output',
                 permission=ContainerPermissions(list=True, write=True),
                 expiry=(datetime.utcnow() + timedelta(days=1))))
 
@@ -148,6 +150,7 @@ def create_test_job(build_id: str, run_live: bool = False) -> str:  # pylint: di
 
     prep_task = JobPreparationTask(get_command_string('tar xvf {}'.format(output_file_name),
                                                       'mv ./artifacts/* ./',
+                                                      'tar xvf tangier.tar',
                                                       './app/install.sh'),
                                    resource_files=resource_files,
                                    wait_for_success=True)
@@ -163,7 +166,12 @@ def create_test_job(build_id: str, run_live: bool = False) -> str:  # pylint: di
 
     output_container_url = _create_output_container_folder()
 
-    job_environment = [EnvironmentSetting(name='AUTOMATION_OUTPUT_CONTAINER', value=output_container_url)]
+    cburl = 'curl -X post {} -H "X-Batch-Event: test.finished" --data-urlencode job_id={}'
+    report_cmd = cburl.format(url_for('api_hook', _external=True, _scheme='https'), job_id)
+    report_cmd += ' --data-urlencode task_id='
+
+    job_environment = [EnvironmentSetting(name='AUTOMATION_OUTPUT_CONTAINER', value=output_container_url),
+                       EnvironmentSetting(name='AUTOMATION_REPORT_CMD', value=report_cmd)]
     if run_live:
         job_environment.append(EnvironmentSetting(name='AZURE_TEST_RUN_LIVE', value='True'))
         job_environment.append(EnvironmentSetting(name='AUTOMATION_SP_NAME', value=automation_actor.account))
@@ -189,7 +197,8 @@ def create_test_job(build_id: str, run_live: bool = False) -> str:  # pylint: di
         job_preparation_task=prep_task,
         job_manager_task=manage_task,
         on_all_tasks_complete=OnAllTasksComplete.terminate_job,
-        metadata=job_metadata))
+        metadata=job_metadata,
+        uses_task_dependencies=True))
 
     logger.info('Job %s is created with preparation task and manager task.', job_id)
     return job_id
