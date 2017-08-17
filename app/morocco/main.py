@@ -103,44 +103,9 @@ def post_test():
 @app.route('/test/<string:job_id>', methods=['POST'])
 @login_required
 def refresh_test(job_id: str):
-    import requests
-    storage = get_blob_storage_client()
+    from morocco.core.operations import sync_test_run
 
-    test_run = DbTestRun.query.filter_by(id=job_id).first()
-    if not test_run:
-        return "Test run job not found", 404
-
-    test_run_job = get_job(job_id)
-    test_run.state = test_run_job.state.value
-
-    if test_run_job.state == JobState.completed:
-        for task in list_tasks(job_id):
-            if task.id == 'test-creator':
-                continue
-
-            test_case = DbTestCase.query.filter_by(id=DbTestCase.get_full_name(task, test_run)).one_or_none()
-            if test_case:
-                continue
-
-            test_case = DbTestCase(task, test_run)
-
-            if not test_case.passed:
-                # only load output of failed tests for performance reason
-                container_name = 'output'
-                blob_name = os.path.join(job_id, task.id, 'stdout.txt')
-                sas = storage.generate_blob_shared_access_signature(container_name, blob_name,
-                                                                    permission=BlobPermissions(read=True),
-                                                                    protocol='https',
-                                                                    expiry=(datetime.utcnow() + timedelta(hours=1)))
-                url = storage.make_blob_url(container_name, blob_name, sas_token=sas, protocol='https')
-
-                response = requests.request('GET', url)
-                test_case.output = '\n'.join(response.text.split('\n')[58:-3])
-
-            db.session.add(test_case)
-
-    db.session.commit()
-
+    sync_test_run(job_id)
     return redirect(url_for('test', job_id=job_id))
 
 
@@ -249,41 +214,14 @@ def post_api_build():
 
 @app.route('/api/hook', methods=['POST'])
 def api_hook():
-    import requests
-    from morocco.core import get_batch_client, get_blob_storage_client
+    if request.headers.get('X-Batch-Event') == 'run.finished':
+        from morocco.core.operations import sync_test_run
 
-    if request.headers.get('X-Batch-Event') == 'test.finished':
         event = DbWebhookEvent(source='batch', content=request.data.decode('utf-8'))
         db.session.add(event)
         db.session.commit()
 
-        job_id = request.form.get('job_id')
-        task_id = request.form.get('task_id')
-
-        test_run_job = get_job(job_id)
-        test_run = DbTestRun.query.filter_by(id=job_id).first()
-        test_run.state = test_run_job.state.value
-
-        task = get_batch_client().task.get(job_id, task_id)
-        test_case = DbTestCase(task, test_run)
-
-        storage = get_blob_storage_client()
-        if not test_case.passed:
-            # only load output of failed tests for performance reason
-            container_name = 'output'
-            blob_name = os.path.join(job_id, task.id, 'stdout.txt')
-            sas = storage.generate_blob_shared_access_signature(container_name, blob_name,
-                                                                permission=BlobPermissions(read=True),
-                                                                protocol='https',
-                                                                expiry=(datetime.utcnow() + timedelta(hours=1)))
-            url = storage.make_blob_url(container_name, blob_name, sas_token=sas, protocol='https')
-
-            response = requests.request('GET', url)
-            test_case.output = '\n'.join(response.text.split('\n')[58:-3])
-
-        db.session.add(test_case)
-        db.session.commit()
-
-        return 'Update {} {}'.format(job_id, task_id), 200
+        sync_test_run(request.form['job_id'])
+        return 'Update {}'.format(request.form['job_id']), 200
 
     return 'Unknown event', 400

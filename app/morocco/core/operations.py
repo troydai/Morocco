@@ -61,6 +61,59 @@ def sync_build(commit: dict = None, sha: str = None, create_job=False):
     return build_record
 
 
+def sync_test_run(job_id: str):
+    import requests
+    import os.path
+    from datetime import datetime, timedelta
+
+    from azure.batch.models import JobState
+    from azure.storage.blob.models import BlobPermissions
+
+    from morocco.core import get_blob_storage_client
+    from morocco.batch import get_job, list_tasks
+
+    from ..models import DbTestRun, DbTestCase
+    from ..application import db
+
+    storage = get_blob_storage_client()
+
+    test_run = DbTestRun.query.filter_by(id=job_id).first()
+    if not test_run:
+        return "Test run job not found", 404
+
+    test_run_job = get_job(job_id)
+    test_run.state = test_run_job.state.value
+
+    if test_run_job.state == JobState.completed:
+        for task in list_tasks(job_id):
+            if task.id == 'test-creator':
+                continue
+
+            test_case = DbTestCase.query.filter_by(id=DbTestCase.get_full_name(task, test_run)).one_or_none()
+            if test_case:
+                continue
+
+            test_case = DbTestCase(task, test_run)
+
+            if not test_case.passed:
+                # only load output of failed tests for performance reason
+                container_name = 'output'
+                blob_name = os.path.join(job_id, task.id, 'stdout.txt')
+                sas = storage.generate_blob_shared_access_signature(container_name, blob_name,
+                                                                    permission=BlobPermissions(read=True),
+                                                                    protocol='https',
+                                                                    expiry=(datetime.utcnow() + timedelta(hours=1)))
+                url = storage.make_blob_url(container_name, blob_name, sas_token=sas, protocol='https')
+
+                response = requests.request('GET', url)
+                test_case.output = '\n'.join(response.text.split('\n')[58:-3])
+
+            db.session.add(test_case)
+    db.session.commit()
+
+    return test_run
+
+
 def on_github_push(payload: dict) -> str:
     from morocco.main import DbBuild
     from morocco.core import get_source_control_commits

@@ -166,9 +166,8 @@ def create_test_job(build_id: str, run_live: bool = False) -> str:  # pylint: di
 
     output_container_url = _create_output_container_folder()
 
-    cburl = 'curl -X post {} -H "X-Batch-Event: test.finished" --data-urlencode job_id={}'
+    cburl = 'curl -X post {} -H "X-Batch-Event: run.finished" --data-urlencode job_id={}'
     report_cmd = cburl.format(url_for('api_hook', _external=True, _scheme='https'), job_id)
-    report_cmd += ' --data-urlencode task_id='
 
     job_environment = [EnvironmentSetting(name='AUTOMATION_OUTPUT_CONTAINER', value=output_container_url),
                        EnvironmentSetting(name='AUTOMATION_REPORT_CMD', value=report_cmd)]
